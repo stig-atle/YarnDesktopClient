@@ -294,7 +294,6 @@ void button_reply_clicked(GtkLabel *lbl, std::string subject,
 }
 
 void parseJsonStatuses(std::string jsonstring) {
-  int previousStatusEndPos = 0;
   Document document;
   document.Parse(jsonstring.c_str());
   const Value &twtsArray = document["twts"];
@@ -520,11 +519,11 @@ void button_login_clicked(GtkLabel *lbl) {
 
     GtkWidget *statusEntrySeparator2 =
         gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_widget_set_vexpand(statusEntrySeparator, true);
+    gtk_widget_set_vexpand(statusEntrySeparator2, true);
 
     GtkWidget *statusEntrySeparator3 =
         gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_widget_set_vexpand(statusEntrySeparator, true);
+    gtk_widget_set_vexpand(statusEntrySeparator3, true);
 
     std::cout << std::endl << "Token: " << token << std::endl;
     getTimeline(userinfo->serverUrl);
@@ -543,7 +542,7 @@ void button_login_clicked(GtkLabel *lbl) {
                     1);
     gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator2, 2, 2, 1,
                     1);
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator2, 3, 2, 1,
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator3, 3, 2, 1,
                     1);
 
     gtk_widget_hide(input_password);
