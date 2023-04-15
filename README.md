@@ -1,6 +1,8 @@
 # Yarn Desktop Client
 
-A desktop client for Yarn, developed and tested on Trisquel (same as Ubuntu\Debian).  
+A desktop client for Yarn ( https://yarn.social/ ).  
+It's being developed and tested on Trisquel (same as Ubuntu\Debian).  
+
 Install compiler and tools:  
 ```sudo apt-get install build-essential cmake git```
 
