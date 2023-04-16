@@ -157,7 +157,7 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
     if (res == CURLE_OK) {
       rapidjson::Document jsonReply;
       jsonReply.Parse(jsonReplyString.c_str());
-      std::cout << " json reply whoami: " << jsonReplyString << std::endl;
+      //std::cout << " json reply whoami: " << jsonReplyString << std::endl;
       if (jsonReply["username"] != NULL) {
         std::string username = jsonReply["username"].GetString();
         std::cout << username << std::endl;
@@ -209,7 +209,7 @@ std::string getToken(std::string username, std::string password,
 
     if (res == CURLE_OK) {
       rapidjson::Document jsonReply;
-      std::cout << " json reply: " << jsonReplyString << std::endl;
+     // std::cout << " json reply: " << jsonReplyString << std::endl;
 
       if (jsonReplyString == "Invalid Credentials\n") {
         std::cout << "Invalid credentials!" << std::endl;
@@ -289,7 +289,7 @@ void downloadAvatar(std::string avatarUrl, std::string filename) {
            << imgresult;
     }
 
-    cout << "Fetch avatar result: \n" << imgresult;
+   // cout << "Fetch avatar result: \n" << imgresult;
   }
   curl_easy_cleanup(curl);
   fclose(avatarFile);
@@ -357,8 +357,8 @@ void parseJsonStatuses(std::string jsonstring) {
                 // We do nothing if the mention is yourself.
               }
 
-              std::cout << std::endl
-                        << "replystring:" << finalReplyString << std::endl;
+             // std::cout << std::endl
+             //           << "replystring:" << finalReplyString << std::endl;
             }
           }
         }
@@ -410,8 +410,8 @@ void parseJsonStatuses(std::string jsonstring) {
         finalTwtString = ReplaceAll(finalTwtString, "Read more", "");
 
         post->status = finalTwtString.c_str();
-        std::cout << std::endl
-                  << "finalTwtString:" << finalTwtString << std::endl;
+       // std::cout << std::endl
+       //           << "finalTwtString:" << finalTwtString << std::endl;
         GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
 
         gtk_label_set_use_markup(GTK_LABEL(statusLabel), true);
