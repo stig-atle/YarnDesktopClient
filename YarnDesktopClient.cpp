@@ -50,11 +50,12 @@ GtkWidget *button_login;
 GtkWidget *input_username;
 GtkWidget *input_password;
 GtkWidget *input_server;
+GtkWidget *checkbox_SSLVerify;
 GtkWidget *timelineDropDown;
 GtkWidget *timelineGrid = NULL;
 GtkWidget *statusEntryGrid = NULL;
 const char *currentTimelineName = NULL;
-
+bool verifySSL = true;
 const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
 
 class UserInfo {
@@ -105,7 +106,9 @@ void postStatus(std::string token, std::string status, std::string serverurl) {
 
     std::string finalServerUrl = serverurl + "/api/v1/post";
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
@@ -142,7 +145,9 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
 
     std::string finalServerUrl = serverurl + "/api/v1/whoami";
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
@@ -188,7 +193,9 @@ std::string getToken(std::string username, std::string password,
 
     std::string finalServerUrl = serverurl + "/api/v1/auth";
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
@@ -262,7 +269,9 @@ void downloadAvatar(std::string avatarUrl, std::string filename) {
   avatarFile = fopen(filename.c_str(), "wb");
 
   if (curl) {
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, avatarFile);
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -462,7 +471,9 @@ std::string getTimeline(std::string serverurl) {
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{}");
     std::string finalServerUrl = serverurl + "/api/v1/" + currentTimelineName;
 
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
@@ -511,6 +522,7 @@ void button_login_clicked(GtkLabel *lbl) {
   userinfo->serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
   userinfo->password = gtk_editable_get_text(GTK_EDITABLE(input_password));
   token = getToken(userinfo->username, userinfo->password, userinfo->serverUrl);
+  verifySSL = gtk_check_button_get_active(GTK_CHECK_BUTTON(checkbox_SSLVerify));
 
   if (token != "") {
     GtkWidget *statusEntrySeparator =
@@ -550,6 +562,7 @@ void button_login_clicked(GtkLabel *lbl) {
     gtk_widget_hide(button_login);
     gtk_widget_hide(input_server);
     gtk_widget_hide(input_username);
+    gtk_widget_hide(checkbox_SSLVerify);
   }
 }
 void button_refresh_timeline_clicked(GtkLabel *lbl) { refreshTimeline(); }
@@ -600,6 +613,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
   input_server = gtk_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_server), "Server URL");
 
+  checkbox_SSLVerify = gtk_check_button_new_with_label("SSL verify.");
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(checkbox_SSLVerify), true);
+
   input_status = gtk_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_status), "Enter status");
 
@@ -629,6 +645,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   gtk_grid_attach(GTK_GRID(timelineGrid), input_password, 0, 1, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), input_server, 0, 2, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), button_login, 0, 3, 3, 1);
+  gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_SSLVerify, 0,4,3,1);
 
   gtk_box_append(GTK_BOX(gridParent), scrolled_window);
 
