@@ -123,8 +123,8 @@ void postStatus(std::string token, std::string status, std::string serverurl) {
     } else {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
-      curl_easy_cleanup(curl);
     }
+    curl_slist_free_all(hs);
     curl_easy_cleanup(curl);
   }
 }
@@ -134,6 +134,7 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
+  std::string username = "";
 
   if (curl) {
     std::string jsonReplyString;
@@ -159,23 +160,18 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
       jsonReply.Parse(jsonReplyString.c_str());
       //std::cout << " json reply whoami: " << jsonReplyString << std::endl;
       if (jsonReply["username"] != NULL) {
-        std::string username = jsonReply["username"].GetString();
+        username = jsonReply["username"].GetString();
         std::cout << username << std::endl;
-        curl_easy_cleanup(curl);
-
-        return username;
       }
-      return "";
     } else {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
-      curl_easy_cleanup(curl);
-      return "";
     }
-    curl_easy_cleanup(curl);
-    return "";
+
+    curl_slist_free_all(hs);
   }
-  return "";
+  curl_easy_cleanup(curl);
+  return username;
 }
 
 std::string getToken(std::string username, std::string password,
@@ -183,6 +179,7 @@ std::string getToken(std::string username, std::string password,
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
+  std::string token_temp = "";
 
   if (curl) {
     std::string jsonReplyString;
@@ -213,7 +210,6 @@ std::string getToken(std::string username, std::string password,
 
       if (jsonReplyString == "Invalid Credentials\n") {
         std::cout << "Invalid credentials!" << std::endl;
-        return "";
       }
       if (jsonReplyString != "Invalid Credentials\n") {
 
@@ -222,26 +218,20 @@ std::string getToken(std::string username, std::string password,
         // Fetch token
         if (jsonReply["token"] != NULL) {
           std::cout << jsonReply["token"].GetString() << std::endl;
-          curl_easy_cleanup(curl);
-          std::string token_temp = jsonReply["token"].GetString();
+          token_temp = jsonReply["token"].GetString();
 
           // Since we got the token - we also update the profile's username.
           userinfo->username = whoAmI(serverurl, token_temp).c_str();
-
-          return token_temp;
         }
       }
-      return "";
     } else {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
-      curl_easy_cleanup(curl);
-      return "";
     }
-    curl_easy_cleanup(curl);
-    return "";
   }
-  return "";
+
+  curl_easy_cleanup(curl);
+  return token_temp;
 }
 
 std::string ReplaceAll(std::string str, const std::string &from,
@@ -340,7 +330,6 @@ void parseJsonStatuses(std::string jsonstring) {
         if (twtsArray[index]["mentions"] != NULL) {
           const Value &mentionsArray = twtsArray[index]["mentions"];
           if (mentionsArray != NULL) {
-            // TODO: remove 'yourself' from the mentions, so that it only
             // appends others - not yourself.
             for (SizeType mentionIndex = 0; mentionIndex < mentionsArray.Size();
                  mentionIndex++) {
@@ -455,13 +444,14 @@ std::string getTimeline(std::string serverurl) {
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
+  std::string jsonReplyString = "";
 
   if (currentTimelineName == NULL) {
     currentTimelineName = "discover";
   }
 
   if (curl) {
-    std::string jsonReplyString;
+
     struct curl_slist *hs = NULL;
     hs = curl_slist_append(hs,
                            "Content-Type: application/x-www-form-urlencoded");
@@ -488,13 +478,12 @@ std::string getTimeline(std::string serverurl) {
     } else {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
-      curl_easy_cleanup(curl);
-      return "";
     }
-    curl_easy_cleanup(curl);
-    return "";
+    curl_slist_free_all(hs);
   }
-  return "";
+  curl_easy_cleanup(curl);
+
+  return jsonReplyString;
 }
 
 void refreshTimeline() {
