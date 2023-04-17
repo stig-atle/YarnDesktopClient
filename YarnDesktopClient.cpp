@@ -85,6 +85,20 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, std::string *s) {
   return size * nmemb;
 }
 
+/*  returns 1 iff str ends with suffix  */
+int str_ends_with(const char * str, const char * suffix) {
+  if( str == NULL || suffix == NULL )
+    return 0;
+
+  size_t str_len = strlen(str);
+  size_t suffix_len = strlen(suffix);
+
+  if(suffix_len > str_len)
+    return 0;
+
+  return 0 == strncmp( str + str_len - suffix_len, suffix, suffix_len );
+}
+
 void postStatus(std::string token, std::string status, std::string serverurl) {
   std::string prefix = "{\"text\": \"";
   std::string suffix = "\"}";
@@ -505,7 +519,18 @@ void selectedTimeline() {
 void button_login_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
   userinfo = new UserInfo();
   userinfo->username = gtk_editable_get_text(GTK_EDITABLE(input_username));
-  userinfo->serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
+  std::string serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
+
+  if (str_ends_with(serverUrl.c_str(), "/") == true)
+  {
+    std::cout << "Found '/' at end of url, will remove it." << std::endl;
+    serverUrl = serverUrl.substr(0, serverUrl.size()-1);
+  }else
+  {
+    std::cout << "No '/' found at end of url, will use as is." << std::endl;
+  }
+
+  userinfo->serverUrl = serverUrl;
   userinfo->password = gtk_editable_get_text(GTK_EDITABLE(input_password));
   token = getToken(userinfo->username, userinfo->password, userinfo->serverUrl);
   verifySSL = gtk_check_button_get_active(GTK_CHECK_BUTTON(checkbox_SSLVerify));
