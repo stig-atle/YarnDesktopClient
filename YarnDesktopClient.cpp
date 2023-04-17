@@ -285,8 +285,7 @@ void downloadAvatar(std::string avatarUrl, std::string filename) {
   fclose(avatarFile);
 }
 
-void button_reply_clicked(GtkLabel *lbl, std::string subject,
-                          vector<string> mentions) {
+void button_reply_clicked(__attribute__ ((unused)) GtkLabel *lbl, std::string subject) {
   std::string replyString = subject;
 
   gtk_editable_set_text(GTK_EDITABLE(input_status), replyString.c_str());
@@ -503,7 +502,7 @@ void selectedTimeline() {
   refreshTimeline();
 }
 
-void button_login_clicked(GtkLabel *lbl) {
+void button_login_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
   userinfo = new UserInfo();
   userinfo->username = gtk_editable_get_text(GTK_EDITABLE(input_username));
   userinfo->serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
@@ -552,16 +551,16 @@ void button_login_clicked(GtkLabel *lbl) {
     gtk_widget_hide(checkbox_SSLVerify);
   }
 }
-void button_refresh_timeline_clicked(GtkLabel *lbl) { refreshTimeline(); }
+void button_refresh_timeline_clicked(__attribute__ ((unused)) GtkLabel *lbl) { refreshTimeline(); }
 
-void button_post_status_clicked(GtkLabel *lbl) {
+void button_post_status_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
   std::string status = gtk_editable_get_text(GTK_EDITABLE(input_status));
   postStatus(token, status, userinfo->serverUrl);
   gtk_editable_set_text(GTK_EDITABLE(input_status), "");
   refreshTimeline();
 }
 
-static void activate(GtkApplication *app, gpointer user_data) {
+static void activate(GtkApplication *app, __attribute__ ((unused)) gpointer user_data) {
   GtkWidget *gridParent;
   gridParent = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
