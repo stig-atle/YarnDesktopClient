@@ -16,7 +16,9 @@ Then clone this repository, and cd into it.
 Create a build folder (```mkdir build```) and cd into that.  
 Then call cmake with:  
 
-```cmake ../```  
+```cmake -DCMAKE_BUILD_TYPE=Debug ../```  
+or:  
+```cmake -DCMAKE_BUILD_TYPE=Release ../```
 from build directory, then run make to build.  
 
 chmod+x the executable and run it.  
