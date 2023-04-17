@@ -18,7 +18,7 @@ Then call cmake with:
 
 ```cmake -DCMAKE_BUILD_TYPE=Debug ../```  
 or:  
-```cmake -DCMAKE_BUILD_TYPE=Release ../```
+```cmake -DCMAKE_BUILD_TYPE=Release ../```  
 from build directory, then run make to build.  
 
 chmod+x the executable and run it.  
