@@ -403,8 +403,6 @@ void parseJsonStatuses(std::string jsonstring) {
        //           << "finalTwtString:" << finalTwtString << std::endl;
         GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
 
-        gtk_label_set_use_markup(GTK_LABEL(statusLabel), true);
-
         gtk_label_set_wrap(GTK_LABEL(statusLabel), true);
         gtk_label_set_xalign(GTK_LABEL(statusLabel), 0);
         gtk_label_set_max_width_chars(GTK_LABEL(statusLabel), 150);
