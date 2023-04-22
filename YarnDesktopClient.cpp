@@ -16,6 +16,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "YarnDesktopClient.h"
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -41,44 +42,13 @@
 using namespace std;
 using namespace rapidjson;
 
-std::string token = "";
-GtkWidget *input_status;
-GtkWidget *button_post_status;
-GtkWidget *button_refresh_timeline;
-GtkWidget *window;
-GtkWidget *button_login;
-GtkWidget *input_username;
-GtkWidget *input_password;
-GtkWidget *input_server;
-GtkWidget *checkbox_SSLVerify;
-GtkWidget *timelineDropDown;
-GtkWidget *timelineGrid = NULL;
-GtkWidget *statusEntryGrid = NULL;
-const char *currentTimelineName = NULL;
-bool verifySSL = true;
-const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
-
-class UserInfo {
-public:
-  string username = "";
-  string serverUrl = "";
-  string password = "";
-};
-
 UserInfo *userinfo = NULL;
 
-class statusPost {
-public:
-  string status = "";
-  string subject = "";
-  string nick = "";
-  string avatarUrl = "";
-  string created = "";
-  string hash = "";
-  string nickUrl = "";
-  vector<string> mentions;
-  string authorUri = "";
-};
+void replaceString(std::string &str, const std::string &from,
+                   const std::string &to) {
+  size_t start_pos = str.find(from);
+  str.replace(start_pos, from.length(), to);
+}
 
 size_t writefunc(void *ptr, size_t size, size_t nmemb, std::string *s) {
   s->append(static_cast<char *>(ptr), size * nmemb);
@@ -86,17 +56,17 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, std::string *s) {
 }
 
 /*  returns 1 iff str ends with suffix  */
-int str_ends_with(const char * str, const char * suffix) {
-  if( str == NULL || suffix == NULL )
+int str_ends_with(const char *str, const char *suffix) {
+  if (str == NULL || suffix == NULL)
     return 0;
 
   size_t str_len = strlen(str);
   size_t suffix_len = strlen(suffix);
 
-  if(suffix_len > str_len)
+  if (suffix_len > str_len)
     return 0;
 
-  return 0 == strncmp( str + str_len - suffix_len, suffix, suffix_len );
+  return 0 == strncmp(str + str_len - suffix_len, suffix, suffix_len);
 }
 
 void postStatus(std::string token, std::string status, std::string serverurl) {
@@ -172,7 +142,7 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
     if (res == CURLE_OK) {
       rapidjson::Document jsonReply;
       jsonReply.Parse(jsonReplyString.c_str());
-      //std::cout << " json reply whoami: " << jsonReplyString << std::endl;
+      // std::cout << " json reply whoami: " << jsonReplyString << std::endl;
       if (jsonReply["username"] != NULL) {
         username = jsonReply["username"].GetString();
         std::cout << username << std::endl;
@@ -220,7 +190,7 @@ std::string getToken(std::string username, std::string password,
 
     if (res == CURLE_OK) {
       rapidjson::Document jsonReply;
-     // std::cout << " json reply: " << jsonReplyString << std::endl;
+      // std::cout << " json reply: " << jsonReplyString << std::endl;
 
       if (jsonReplyString == "Invalid Credentials\n") {
         std::cout << "Invalid credentials!" << std::endl;
@@ -293,13 +263,14 @@ void downloadAvatar(std::string avatarUrl, std::string filename) {
            << imgresult;
     }
 
-   // cout << "Fetch avatar result: \n" << imgresult;
+    // cout << "Fetch avatar result: \n" << imgresult;
   }
   curl_easy_cleanup(curl);
   fclose(avatarFile);
 }
 
-void button_reply_clicked(__attribute__ ((unused)) GtkLabel *lbl, std::string subject) {
+void button_reply_clicked(__attribute__((unused)) GtkLabel *lbl,
+                          std::string subject) {
   std::string replyString = subject;
 
   gtk_editable_set_text(GTK_EDITABLE(input_status), replyString.c_str());
@@ -359,8 +330,24 @@ void parseJsonStatuses(std::string jsonstring) {
                 // We do nothing if the mention is yourself.
               }
 
-             // std::cout << std::endl
-             //           << "replystring:" << finalReplyString << std::endl;
+              // std::cout << std::endl
+              //           << "replystring:" << finalReplyString << std::endl;
+            }
+          }
+        }
+
+        if (twtsArray[index]["links"] != NULL) {
+          const Value &linksArray = twtsArray[index]["links"];
+          if (linksArray != NULL) {
+            // appends others - not yourself.
+            for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
+                 linkIndex++) {
+              std::string linkString =
+                  document["twts"][index]["links"][linkIndex].GetString();
+              post->links.push_back(linkString);
+
+              std::cout << std::endl
+                        << "added link to post: " << linkString << std::endl;
             }
           }
         }
@@ -412,8 +399,8 @@ void parseJsonStatuses(std::string jsonstring) {
         finalTwtString = ReplaceAll(finalTwtString, "Read more", "");
 
         post->status = finalTwtString.c_str();
-       // std::cout << std::endl
-       //           << "finalTwtString:" << finalTwtString << std::endl;
+        // std::cout << std::endl
+        //           << "finalTwtString:" << finalTwtString << std::endl;
         GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
 
         gtk_label_set_wrap(GTK_LABEL(statusLabel), true);
@@ -462,7 +449,6 @@ std::string getTimeline(std::string serverurl) {
   }
 
   if (curl) {
-
     struct curl_slist *hs = NULL;
     hs = curl_slist_append(hs,
                            "Content-Type: application/x-www-form-urlencoded");
@@ -516,24 +502,25 @@ void selectedTimeline() {
   refreshTimeline();
 }
 
-void button_login_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
+void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
   userinfo = new UserInfo();
   userinfo->username = gtk_editable_get_text(GTK_EDITABLE(input_username));
+  verifySSL = gtk_check_button_get_active(GTK_CHECK_BUTTON(checkbox_SSLVerify));
+
   std::string serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
 
-  if (str_ends_with(serverUrl.c_str(), "/") == true)
-  {
+  if (str_ends_with(serverUrl.c_str(), "/") == true) {
     std::cout << "Found '/' at end of url, will remove it." << std::endl;
-    serverUrl = serverUrl.substr(0, serverUrl.size()-1);
-  }else
-  {
+    serverUrl = serverUrl.substr(0, serverUrl.size() - 1);
+  } else {
     std::cout << "No '/' found at end of url, will use as is." << std::endl;
   }
+
+  serverUrl = getSSLUrl(serverUrl, verifySSL);
 
   userinfo->serverUrl = serverUrl;
   userinfo->password = gtk_editable_get_text(GTK_EDITABLE(input_password));
   token = getToken(userinfo->username, userinfo->password, userinfo->serverUrl);
-  verifySSL = gtk_check_button_get_active(GTK_CHECK_BUTTON(checkbox_SSLVerify));
 
   if (token != "") {
     GtkWidget *statusEntrySeparator =
@@ -576,16 +563,44 @@ void button_login_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
     gtk_widget_hide(checkbox_SSLVerify);
   }
 }
-void button_refresh_timeline_clicked(__attribute__ ((unused)) GtkLabel *lbl) { refreshTimeline(); }
 
-void button_post_status_clicked(__attribute__ ((unused)) GtkLabel *lbl) {
+std::string getSSLUrl(std::string url, bool verifySSL)
+{
+   if (verifySSL) {
+    // Se if we have entered a http only url if ssl was enabled.
+    if (url.find("http://") != string::npos) {
+      replaceString(url, "http://", "https://");
+      std::cout
+          << "SSl is enabled, but http only url was used, forcing ssl for url."
+          << std::endl;
+      std::cout << url << std::endl;
+    }
+  } else {
+    // Do the reverse if we have http only and have entered a https url
+    if (url.find("https://") != string::npos) {
+      replaceString(url, "https://", "http://");
+      std::cout << "SSl is disabled, but https only url was used, forcing "
+                   "non-ssl for url."
+                << std::endl;
+      std::cout << url << std::endl;
+    }
+  }
+  return url;
+}
+
+void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl) {
+  refreshTimeline();
+}
+
+void button_post_status_clicked(__attribute__((unused)) GtkLabel *lbl) {
   std::string status = gtk_editable_get_text(GTK_EDITABLE(input_status));
   postStatus(token, status, userinfo->serverUrl);
   gtk_editable_set_text(GTK_EDITABLE(input_status), "");
   refreshTimeline();
 }
 
-static void activate(GtkApplication *app, __attribute__ ((unused)) gpointer user_data) {
+static void activate(GtkApplication *app,
+                     __attribute__((unused)) gpointer user_data) {
   GtkWidget *gridParent;
   gridParent = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
@@ -656,7 +671,7 @@ static void activate(GtkApplication *app, __attribute__ ((unused)) gpointer user
   gtk_grid_attach(GTK_GRID(timelineGrid), input_password, 0, 1, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), input_server, 0, 2, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), button_login, 0, 3, 3, 1);
-  gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_SSLVerify, 0,4,3,1);
+  gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_SSLVerify, 0, 4, 3, 1);
 
   gtk_box_append(GTK_BOX(gridParent), scrolled_window);
 
