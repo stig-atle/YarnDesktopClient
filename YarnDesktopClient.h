@@ -8,6 +8,23 @@
 
 using namespace std;
 
+std::string token = "";
+GtkWidget *input_status;
+GtkWidget *button_post_status;
+GtkWidget *button_refresh_timeline;
+GtkWidget *window;
+GtkWidget *button_login;
+GtkWidget *input_username;
+GtkWidget *input_password;
+GtkWidget *input_server;
+GtkWidget *checkbox_SSLVerify;
+GtkWidget *timelineDropDown;
+GtkWidget *timelineGrid = NULL;
+GtkWidget *statusEntryGrid = NULL;
+const char *currentTimelineName = NULL;
+bool verifySSL = true;
+const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
+
 class UserInfo {
 public:
   string username = "";
@@ -41,7 +58,7 @@ std::string getToken(std::string username, std::string password,
 std::string ReplaceAll(std::string str, const std::string &from,
                        const std::string &to);
 bool FileExists(const std::string &Filename);
-void downloadAvatar(std::string avatarUrl, std::string filename);
+void downloadFile(std::string fileUrl, std::string filename);
 void button_reply_clicked(__attribute__((unused)) GtkLabel *lbl,
                           std::string subject);
 void parseJsonStatuses(std::string jsonstring);
@@ -53,20 +70,5 @@ void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl);
 static void activate(GtkApplication *app,
                      __attribute__((unused)) gpointer user_data);
 std::string getSSLUrl(std::string url, bool verifySSL);
-
-std::string token = "";
-GtkWidget *input_status;
-GtkWidget *button_post_status;
-GtkWidget *button_refresh_timeline;
-GtkWidget *window;
-GtkWidget *button_login;
-GtkWidget *input_username;
-GtkWidget *input_password;
-GtkWidget *input_server;
-GtkWidget *checkbox_SSLVerify;
-GtkWidget *timelineDropDown;
-GtkWidget *timelineGrid = NULL;
-GtkWidget *statusEntryGrid = NULL;
-const char *currentTimelineName = NULL;
-bool verifySSL = true;
-const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
+std::string getCleanLinkUrl(std::string link);
+bool hasEnding (std::string const &fullString, std::string const &ending);

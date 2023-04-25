@@ -132,7 +132,6 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
-
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
@@ -176,7 +175,6 @@ std::string getToken(std::string username, std::string password,
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
-
     curl_easy_setopt(curl, CURLOPT_URL, finalServerUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
@@ -233,47 +231,58 @@ bool FileExists(const std::string &Filename) {
   return access(Filename.c_str(), 0) == 0;
 }
 
-// Download the avatars that does not exist already.
-void downloadAvatar(std::string avatarUrl, std::string filename) {
+// Download file from url..
+void downloadFile(std::string fileUrl, std::string filename) {
   CURL *curl;
-  CURLcode imgresult;
-  const char *url = avatarUrl.c_str();
+  CURLcode fileResult;
+  const char *url = fileUrl.c_str();
   curl = curl_easy_init();
-  FILE *avatarFile;
-  avatarFile = fopen(filename.c_str(), "wb");
+  FILE *file;
+  file = fopen(filename.c_str(), "wb");
 
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, avatarFile);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_USERAGENT,
                      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                      "(KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36");
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
     // Grab image
-    imgresult = curl_easy_perform(curl);
+    fileResult = curl_easy_perform(curl);
 
-    if (imgresult) {
-      cout << "Cannot grab the image!\n" << imgresult;
+    if (fileResult) {
+      cout << "Cannot grab the file!\n" << fileResult;
     } else {
-      cout << "Successfully grabbed avatar! stored at: " << filename
-           << imgresult;
+      cout << "Successfully grabbed file! stored at: " << filename
+           << fileResult;
     }
-
-    // cout << "Fetch avatar result: \n" << imgresult;
   }
   curl_easy_cleanup(curl);
-  fclose(avatarFile);
+  fclose(file);
 }
 
 void button_reply_clicked(__attribute__((unused)) GtkLabel *lbl,
                           std::string subject) {
-  std::string replyString = subject;
+  gtk_editable_set_text(GTK_EDITABLE(input_status), subject.c_str());
+}
 
-  gtk_editable_set_text(GTK_EDITABLE(input_status), replyString.c_str());
+std::string getCleanLinkUrl(std::string link) {
+  link = ReplaceAll(link, "![](", "");
+  link = ReplaceAll(link, ")", "");
+  return link;
+}
+
+bool hasEnding(std::string const &fullString, std::string const &ending) {
+  if (fullString.length() >= ending.length()) {
+    return (0 == fullString.compare(fullString.length() - ending.length(),
+                                    ending.length(), ending));
+  } else {
+    return false;
+  }
 }
 
 void parseJsonStatuses(std::string jsonstring) {
@@ -336,22 +345,6 @@ void parseJsonStatuses(std::string jsonstring) {
           }
         }
 
-        if (twtsArray[index]["links"] != NULL) {
-          const Value &linksArray = twtsArray[index]["links"];
-          if (linksArray != NULL) {
-            // appends others - not yourself.
-            for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
-                 linkIndex++) {
-              std::string linkString =
-                  document["twts"][index]["links"][linkIndex].GetString();
-              post->links.push_back(linkString);
-
-              std::cout << std::endl
-                        << "added link to post: " << linkString << std::endl;
-            }
-          }
-        }
-
         post->subject = finalReplyString;
 
         // We do not check file format for images, so we just store it with png
@@ -360,7 +353,7 @@ void parseJsonStatuses(std::string jsonstring) {
 
         if (post->avatarUrl != "") {
           if (!FileExists(filename)) {
-            downloadAvatar(post->avatarUrl, filename);
+            downloadFile(post->avatarUrl, filename);
           }
         }
 
@@ -413,6 +406,44 @@ void parseJsonStatuses(std::string jsonstring) {
         gtk_image_set_pixel_size(GTK_IMAGE(avatar), 50);
         gtk_grid_attach(GTK_GRID(timelineGrid), avatar, 0,
                         index + guiLineOffset, 1, 1);
+
+        if (twtsArray[index]["links"] != NULL) {
+          const Value &linksArray = twtsArray[index]["links"];
+          if (linksArray != NULL) {
+            // appends others - not yourself.
+            for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
+                 linkIndex++) {
+              std::string linkString =
+                  document["twts"][index]["links"][linkIndex].GetString();
+              linkString = getCleanLinkUrl(linkString);
+              post->links.push_back(linkString);
+
+              // if the link ends with for example .png - we download it and
+              // show it.
+              if (hasEnding(linkString, ".png") ||
+                  hasEnding(linkString, ".jpg")) {
+                std::string base_filename =
+                    linkString.substr(linkString.find_last_of("/\\") + 1);
+                if (!FileExists(base_filename)) {
+                  std::cout << std::endl
+                            << "filename: " << base_filename << std::endl;
+                  downloadFile(linkString, base_filename);
+                }
+
+                GtkWidget *attachedImage =
+                gtk_image_new_from_file(base_filename.c_str());
+                gtk_image_set_pixel_size(GTK_IMAGE(attachedImage), 500);
+
+                gtk_grid_attach(GTK_GRID(timelineGrid), attachedImage, 1,
+                                index + guiLineOffset + 1, 1, 1);
+                guiLineOffset += 1;
+              }
+
+              std::cout << std::endl
+                        << "added link to post: " << linkString << std::endl;
+            }
+          }
+        }
 
         // Create a reply button and send the 'subject' with it, so that the new
         // post replies to that status.
@@ -564,9 +595,8 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
   }
 }
 
-std::string getSSLUrl(std::string url, bool verifySSL)
-{
-   if (verifySSL) {
+std::string getSSLUrl(std::string url, bool verifySSL) {
+  if (verifySSL) {
     // Se if we have entered a http only url if ssl was enabled.
     if (url.find("http://") != string::npos) {
       replaceString(url, "http://", "https://");
