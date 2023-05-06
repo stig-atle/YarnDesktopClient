@@ -3,7 +3,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
+#include <fstream>
+#include <iostream>
+#include <libsecret/secret.h>
 #include <gtk-4.0/gtk/gtk.h>
 
 using namespace std;
@@ -18,12 +20,15 @@ GtkWidget *input_username;
 GtkWidget *input_password;
 GtkWidget *input_server;
 GtkWidget *checkbox_SSLVerify;
+GtkWidget *checkbox_StoreUsernameServerUrl;
 GtkWidget *timelineDropDown;
 GtkWidget *timelineGrid = NULL;
 GtkWidget *statusEntryGrid = NULL;
 const char *currentTimelineName = NULL;
 bool verifySSL = true;
 const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
+const char *userSettingsFile = "UserSettings.txt";
+fstream settingsFile;
 
 class UserInfo {
 public:
@@ -45,6 +50,9 @@ public:
   vector<string> links;
   string authorUri = "";
 };
+
+const SecretSchema * get_schema (void) G_GNUC_CONST;
+#define PASSWORD_SCHEMA  get_schema ()
 
 int main(int argc, char **argv);
 void replaceString(std::string &str, const std::string &from,
@@ -72,3 +80,6 @@ static void activate(GtkApplication *app,
 std::string getSSLUrl(std::string url, bool verifySSL);
 std::string getCleanLinkUrl(std::string link);
 bool hasEnding (std::string const &fullString, std::string const &ending);
+void readAndApplyUserSettings();
+void storeUserSettings();
+void storePassword();

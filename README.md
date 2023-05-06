@@ -7,7 +7,7 @@ Install compiler and tools:
 ```sudo apt-get install build-essential cmake git```
 
 Install Yarn desktop client dependencies with:  
-```sudo apt-get install liburl-dev libgtk-4-dev rapidjson-dev```
+```sudo apt-get install liburl-dev libgtk-4-dev rapidjson-dev libsecret-1-dev```  
 
 Or compile the dependencies from source and install that if needed.  
 

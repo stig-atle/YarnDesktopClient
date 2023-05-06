@@ -18,9 +18,14 @@
 
 #include "YarnDesktopClient.h"
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+// #include <filesystem>
+#include <experimental/filesystem>
+
+#include <libsecret/secret.h>
 
 // Rapidjson includes.
 #include "rapidjson/document.h"
@@ -431,7 +436,7 @@ void parseJsonStatuses(std::string jsonstring) {
                 }
 
                 GtkWidget *attachedImage =
-                gtk_image_new_from_file(base_filename.c_str());
+                    gtk_image_new_from_file(base_filename.c_str());
                 gtk_image_set_pixel_size(GTK_IMAGE(attachedImage), 500);
 
                 gtk_grid_attach(GTK_GRID(timelineGrid), attachedImage, 1,
@@ -554,6 +559,11 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
   token = getToken(userinfo->username, userinfo->password, userinfo->serverUrl);
 
   if (token != "") {
+
+    storeUserSettings();
+
+    storePassword();
+
     GtkWidget *statusEntrySeparator =
         gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_widget_set_vexpand(statusEntrySeparator, true);
@@ -629,6 +639,87 @@ void button_post_status_clicked(__attribute__((unused)) GtkLabel *lbl) {
   refreshTimeline();
 }
 
+void storeUserSettings() {
+  std::ofstream out(userSettingsFile);
+  out << userinfo->serverUrl << std::endl;
+  out << userinfo->username << std::endl;
+  out.close();
+}
+
+void readAndApplyUserSettings() {
+  if (std::experimental::filesystem::exists(userSettingsFile)) {
+    settingsFile.open(userSettingsFile, ios::in);
+    if (settingsFile.is_open()) {
+      std::string settingsLine = "";
+      for (int settingsIndex = 0; getline(settingsFile, settingsLine);
+           settingsIndex++) {
+        if (settingsIndex == 0) {
+          gtk_editable_set_text(GTK_EDITABLE(input_server),
+                                settingsLine.c_str());
+        }
+        if (settingsIndex == 1) {
+          gtk_editable_set_text(GTK_EDITABLE(input_username),
+                                settingsLine.c_str());
+        }
+      }
+    }
+  }
+}
+
+const SecretSchema *get_schema(void) {
+  static const SecretSchema the_schema = {
+      "Yarn.Desktop.Password",
+      SECRET_SCHEMA_NONE,
+      {
+          {"version", SECRET_SCHEMA_ATTRIBUTE_INTEGER},
+          {"website", SECRET_SCHEMA_ATTRIBUTE_STRING},
+          {"NULL"},
+      }};
+  return &the_schema;
+}
+
+static void on_password_stored(GObject *source, GAsyncResult *result,
+                               gpointer unused) {
+  GError *error = NULL;
+
+  secret_password_store_finish(result, &error);
+  if (error != NULL) {
+    /* ... handle the failure here */
+    g_error_free(error);
+  } else {
+    std::cout << "password has been stored..\n";
+  }
+}
+
+void storePassword() {
+  std::cout << "Storing password!\n";
+
+  secret_password_store(PASSWORD_SCHEMA, SECRET_COLLECTION_DEFAULT,
+                        "Yarn Desktop Client", userinfo->password.c_str(), NULL,
+                        on_password_stored, NULL, "version", 0, "website",
+                        "https://github.com/stig-atle/YarnDesktopClient", NULL);
+}
+
+void getpassword() {
+  GError *error = NULL;
+
+  gchar *password = secret_password_lookup_sync(
+      PASSWORD_SCHEMA, NULL, &error, "website",
+      "https://github.com/stig-atle/YarnDesktopClient", "version", 0, NULL);
+
+  if (error != NULL) {
+    cout << "error!\n";
+    g_error_free(error);
+  } else if (password == NULL) {
+    cout << "password was null\n";
+  } else {
+    std::string retrievedPassword(password);
+    gtk_editable_set_text(GTK_EDITABLE(input_password),
+                          retrievedPassword.c_str());
+    secret_password_free(password);
+  }
+}
+
 static void activate(GtkApplication *app,
                      __attribute__((unused)) gpointer user_data) {
   GtkWidget *gridParent;
@@ -672,6 +763,13 @@ static void activate(GtkApplication *app,
   checkbox_SSLVerify = gtk_check_button_new_with_label("SSL verify.");
   gtk_check_button_set_active(GTK_CHECK_BUTTON(checkbox_SSLVerify), true);
 
+  checkbox_StoreUsernameServerUrl =
+      gtk_check_button_new_with_label("Store username, serverurl locally. "
+                                      "(password is placed in secure storage)");
+
+  gtk_check_button_set_active(GTK_CHECK_BUTTON(checkbox_StoreUsernameServerUrl),
+                              true);
+
   input_status = gtk_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_status), "Enter status");
 
@@ -702,12 +800,15 @@ static void activate(GtkApplication *app,
   gtk_grid_attach(GTK_GRID(timelineGrid), input_server, 0, 2, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), button_login, 0, 3, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_SSLVerify, 0, 4, 3, 1);
-
+  gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_StoreUsernameServerUrl, 0, 5,
+                  3, 1);
   gtk_box_append(GTK_BOX(gridParent), scrolled_window);
 
   gtk_window_set_child(GTK_WINDOW(window), gridParent);
 
   gtk_widget_show(window);
+  getpassword();
+  readAndApplyUserSettings();
 }
 
 int main(int argc, char **argv) {
