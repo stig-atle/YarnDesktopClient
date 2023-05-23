@@ -1,8 +1,12 @@
 # Yarn Desktop Client
 
 A desktop client for Yarn ( https://yarn.social/ ).  
-It's being developed and tested on Trisquel (same as Ubuntu\Debian).  
+It's being developed and tested on Trisquel (same as Ubuntu\Debian) and NixOS.  
 
+Nixos:  
+Enable flake support, then go to source dir and type 'nix build'.  
+
+Debian/Ubuntu based:  
 Install compiler and tools:  
 ```sudo apt-get install build-essential cmake git```
 
