@@ -602,6 +602,7 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
     gtk_widget_hide(input_server);
     gtk_widget_hide(input_username);
     gtk_widget_hide(checkbox_SSLVerify);
+    gtk_widget_hide(checkbox_StoreUsernameServerUrl);
   }
 }
 
