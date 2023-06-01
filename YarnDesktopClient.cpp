@@ -260,10 +260,10 @@ void downloadFile(std::string fileUrl, std::string filename) {
     fileResult = curl_easy_perform(curl);
 
     if (fileResult) {
-      cout << "Cannot grab the file!\n" << fileResult << std::endl();
+      cout << "Cannot grab the file!\n" << fileResult << std::endl;
     } else {
       cout << "Successfully grabbed file! stored at: " << filename
-           << fileResult << std::endl();
+           << fileResult << std::endl;
     }
   }
   curl_easy_cleanup(curl);
