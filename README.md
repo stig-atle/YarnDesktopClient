@@ -1,7 +1,7 @@
 # Yarn Desktop Client
 
 A desktop client for Yarn ( https://yarn.social/ ).  
-It's being developed and tested on Trisquel (same as Ubuntu\Debian) and NixOS.  
+It's being developed and tested on Debian, and has flakes file NixOS.  
 
 # Nixos:  
 Flake:  
@@ -17,7 +17,7 @@ Install compiler and tools:
 ```sudo apt-get install build-essential cmake git```
 
 Install Yarn desktop client dependencies with:  
-```sudo apt-get install liburl-dev libgtk-4-dev rapidjson-dev libsecret-1-dev```  
+```sudo apt-get install libcurl4-openssl-dev libgtk-4-dev rapidjson-dev libsecret-1-dev```  
 
 Or compile the dependencies from source and install that if needed.  
 
