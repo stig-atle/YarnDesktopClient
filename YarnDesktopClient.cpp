@@ -17,12 +17,12 @@
 */
 
 #include "YarnDesktopClient.h"
+#include "statuspost.h"
 #include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-// #include <filesystem>
 #include <experimental/filesystem>
 
 #include <libsecret/secret.h>
@@ -33,13 +33,12 @@
 #include "rapidjson/writer.h"
 
 #ifdef _WIN32
-#include <io.h>
-#define access _access_s
+#include<windows.h>
+  #include <io.h>
+  #define access _access_s
 #else
-#include <unistd.h>
+  #include <unistd.h>
 #endif
-
-#include <gtk-4.0/gtk/gtk.h>
 
 #include <curl/curl.h>
 #include <regex>
@@ -585,16 +584,13 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
 
     gtk_grid_attach(GTK_GRID(statusEntryGrid), input_status, 1, 0, 3, 1);
     gtk_grid_attach(GTK_GRID(statusEntryGrid), button_post_status, 1, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), button_refresh_timeline, 2, 1, 1,
-                    1);
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), timelineDropDown, 3, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), button_refresh_timeline, 2, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), button_upload_media, 3, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), timelineDropDown, 4, 1, 1, 1);
 
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator, 1, 2, 1,
-                    1);
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator2, 2, 2, 1,
-                    1);
-    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator3, 3, 2, 1,
-                    1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator, 1, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator2, 2, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(statusEntryGrid), statusEntrySeparator3, 3, 2, 1, 1);
 
     gtk_widget_hide(input_password);
     gtk_widget_hide(input_server);
@@ -631,6 +627,181 @@ std::string getSSLUrl(std::string url, bool verifySSL) {
 
 void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl) {
   refreshTimeline();
+}
+
+void checkTask(std::string taskURL)
+{
+  CURLcode ret;
+  CURL *curl;
+  curl = curl_easy_init();
+  std::string replystring = "";
+
+  cout << "checking task at url: " << taskURL << "\n";
+
+  curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 102400L);
+  curl_easy_setopt(curl, CURLOPT_URL, taskURL.c_str());
+  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "curl/8.3.0");
+  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
+  curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_2TLS);
+  curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1L);
+  curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &replystring);
+
+  ret = curl_easy_perform(curl);
+  cout << "replystring :" << replystring << "\n";
+
+  Document document;
+  document.Parse(replystring.c_str());
+
+  if (document["state"] != NULL)
+  {
+    std::string taskStateString =  document["state"].GetString();
+    std::string errorString =  document["error"].GetString();
+
+    if(errorString != "")
+    {
+      cout << "Error from task is: " << errorString << "\n"; 
+      curl_easy_cleanup(curl);
+      curl = NULL;
+    }else
+    {
+      cout << "state from task is: " << taskStateString << "\n";
+
+      if(taskStateString == "complete")
+      {
+        cout << document["data"]["mediaURI"].GetString() << "\n";
+        
+        std::string imageurl = "";
+
+        imageurl.append("![](");
+        imageurl.append(document["data"]["mediaURI"].GetString());
+        imageurl.append(") ");
+
+        std::string statusTextAndImageUrl = gtk_editable_get_text(GTK_EDITABLE(input_status));
+        statusTextAndImageUrl += " " + imageurl;
+
+        gtk_editable_set_text(GTK_EDITABLE(input_status), statusTextAndImageUrl.c_str());
+
+        curl_easy_cleanup(curl);
+        curl = NULL;
+      }
+      else
+      {
+        cout << "Task was not complete (on server), waiting 2 seconds and check again.\n";
+        curl_easy_cleanup(curl);
+        curl = NULL;
+        sleep(2);
+        checkTask(taskURL);
+      }
+    }
+  } 
+  curl_easy_cleanup(curl);
+  curl = NULL;
+}
+
+/*
+  Example reply for image that's been uploaded:
+  replystring :{"state":"complete","error":"","data":{"mediaURI":"https://yarn.stigatle.no/media/image.png"}}
+  meaning that if the task is not reporting 'complete' we then need to check the task again.
+*/
+std::string uploadMedia(std::string filepath, std::string token)
+{
+  cout << "uploading file from path: " << filepath << "\n";
+  cout << "to url: " + userinfo->serverUrl + "/api/v1/upload" << "\n";
+
+  CURL *curl;
+  curl_mime *mime1;
+  curl_mimepart *part1;
+  struct curl_slist *slist1;
+  CURLcode res;
+  mime1 = NULL;
+  slist1 = NULL;
+  std::string tokenJson = ("Token: " + token);
+  std::string jsonReplyString = "";
+  std::string urlTemp = userinfo->serverUrl + "/api/v1/upload";
+  
+  slist1 = curl_slist_append(slist1, tokenJson.c_str());
+  curl = curl_easy_init();
+  
+  curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE);
+  curl_easy_setopt(curl, CURLOPT_URL, urlTemp.c_str());
+  curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
+  
+  mime1 = curl_mime_init(curl);
+  part1 = curl_mime_addpart(mime1);
+  
+  curl_mime_filedata(part1, filepath.c_str());
+  curl_mime_name(part1, "media_file");
+  
+  curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime1);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist1);
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                     "(KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36");
+  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
+  curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_2TLS);
+  curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1L);
+  curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &jsonReplyString);
+
+  res = curl_easy_perform(curl);
+
+  if (res == CURLE_OK) {
+    rapidjson::Document jsonReply;
+    jsonReply.Parse(jsonReplyString.c_str());
+      std::cout << " json reply upload_media: " << jsonReplyString << std::endl;
+
+    if (jsonReply["Path"] != NULL) {
+      cout << "path is: " << jsonReply["Path"].GetString() << "\n";
+      checkTask(jsonReply["Path"].GetString());
+    }
+  }
+
+  curl_easy_cleanup(curl);
+  curl = NULL;
+  curl_mime_free(mime1);
+  mime1 = NULL;
+  curl_slist_free_all(slist1);
+  slist1 = NULL;
+
+  return jsonReplyString;
+}
+
+static void on_open_response (GtkDialog *dialog, int response)
+{
+  if (response == GTK_RESPONSE_ACCEPT)
+  {
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+
+    g_autoptr(GFile) file = gtk_file_chooser_get_file (chooser);
+    string fileName = g_file_get_path(file);
+    cout << "file name: " << fileName << endl;
+    uploadMedia(fileName,token);
+  }
+
+  gtk_window_destroy (GTK_WINDOW (dialog));
+}
+
+void button_upload_media_clicked(__attribute__((unused)) GtkLabel *lbl) {
+GtkWidget *dialog;
+GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+
+dialog = gtk_file_chooser_dialog_new ("Open File",
+                                      GTK_WINDOW(window),
+                                      action,
+                                      ("_Cancel"),
+                                      GTK_RESPONSE_CANCEL,
+                                      ("_Open"),
+                                      GTK_RESPONSE_ACCEPT,
+                                      NULL);
+
+    gtk_widget_show (dialog);
+
+    g_signal_connect (dialog, "response", G_CALLBACK (on_open_response), NULL);
 }
 
 void button_post_status_clicked(__attribute__((unused)) GtkLabel *lbl) {
@@ -775,14 +946,16 @@ static void activate(GtkApplication *app,
   gtk_entry_set_placeholder_text(GTK_ENTRY(input_status), "Enter status");
 
   button_post_status = gtk_button_new_with_label("Post status");
-
-  button_refresh_timeline = gtk_button_new_with_label("Refresh timeline");
-
   g_signal_connect(button_post_status, "clicked",
                    G_CALLBACK(button_post_status_clicked), NULL);
 
+  button_refresh_timeline = gtk_button_new_with_label("Refresh timeline");
   g_signal_connect(button_refresh_timeline, "clicked",
                    G_CALLBACK(button_refresh_timeline_clicked), NULL);
+
+  button_upload_media = gtk_button_new_with_label("Upload media");
+  g_signal_connect(button_upload_media, "clicked",
+                   G_CALLBACK(button_upload_media_clicked), NULL);
 
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scrolled_window),
                                 timelineGrid);
@@ -797,8 +970,11 @@ static void activate(GtkApplication *app,
                                  GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 
   gtk_grid_attach(GTK_GRID(timelineGrid), input_username, 0, 0, 3, 1);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(input_username), "Username");
   gtk_grid_attach(GTK_GRID(timelineGrid), input_password, 0, 1, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), input_server, 0, 2, 3, 1);
+  gtk_entry_set_placeholder_text(GTK_ENTRY(input_server), "Url");
+  gtk_entry_set_placeholder_text(GTK_ENTRY(input_status), "Enter status");
   gtk_grid_attach(GTK_GRID(timelineGrid), button_login, 0, 3, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_SSLVerify, 0, 4, 3, 1);
   gtk_grid_attach(GTK_GRID(timelineGrid), checkbox_StoreUsernameServerUrl, 0, 5,
@@ -813,7 +989,6 @@ static void activate(GtkApplication *app,
 }
 
 int main(int argc, char **argv) {
-  GtkApplication *app;
   int status;
 
   app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);

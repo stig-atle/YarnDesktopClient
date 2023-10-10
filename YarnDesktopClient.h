@@ -11,9 +11,11 @@
 using namespace std;
 
 std::string token = "";
+GtkApplication *app;
 GtkWidget *input_status;
 GtkWidget *button_post_status;
 GtkWidget *button_refresh_timeline;
+GtkWidget *button_upload_media;
 GtkWidget *window;
 GtkWidget *button_login;
 GtkWidget *input_username;
@@ -35,20 +37,6 @@ public:
   string username = "";
   string serverUrl = "";
   string password = "";
-};
-
-class statusPost {
-public:
-  string status = "";
-  string subject = "";
-  string nick = "";
-  string avatarUrl = "";
-  string created = "";
-  string hash = "";
-  string nickUrl = "";
-  vector<string> mentions;
-  vector<string> links;
-  string authorUri = "";
 };
 
 const SecretSchema * get_schema (void) G_GNUC_CONST;
@@ -75,6 +63,7 @@ void refreshTimeline();
 void selectedTimeline();
 void button_login_clicked(__attribute__((unused)) GtkLabel *lbl);
 void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl);
+void button_upload_media_clicked(__attribute__((unused)) GtkLabel *lbl);
 static void activate(GtkApplication *app,
                      __attribute__((unused)) gpointer user_data);
 std::string getSSLUrl(std::string url, bool verifySSL);
