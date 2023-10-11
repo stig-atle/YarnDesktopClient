@@ -33,6 +33,8 @@ from build directory, then run make to build.
 
 chmod+x the executable and run it.  
 
+![image](https://github.com/stig-atle/YarnDesktopClient/assets/7627610/7663c80d-3518-4050-bd26-c719d9d0fe0e)
+
 You can reach out to me through the github issue system, or yarn:  
 https://yarn.stigatle.no/user/stigatle/
 
