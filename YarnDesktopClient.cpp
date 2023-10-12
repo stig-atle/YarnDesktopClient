@@ -752,10 +752,11 @@ std::string uploadMedia(std::string filepath, std::string token)
 
   if (res == CURLE_OK) {
     rapidjson::Document jsonReply;
-    jsonReply.Parse(jsonReplyString.c_str());
-      std::cout << " json reply upload_media: " << jsonReplyString << std::endl;
-
-    if (jsonReply["Path"] != NULL) {
+    
+    if (jsonReply.Parse(jsonReplyString.c_str()).HasParseError()){
+      std::cout << jsonReplyString.c_str();
+    }
+    else{
       cout << "path is: " << jsonReply["Path"].GetString() << "\n";
       checkTask(jsonReply["Path"].GetString());
     }
