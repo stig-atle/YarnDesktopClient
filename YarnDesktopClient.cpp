@@ -231,6 +231,11 @@ std::string ReplaceAll(std::string str, const std::string &from,
   return str;
 }
 
+std::string injectClickableLink(std::string statusText, std::string linkText) {
+  linkText = ReplaceAll(statusText,linkText, "<a href=\"" + linkText + "\"" + ">" + linkText + "</a>");
+  return linkText;
+}
+
 bool FileExists(const std::string &Filename) {
   return access(Filename.c_str(), 0) == 0;
 }
@@ -396,10 +401,23 @@ void parseJsonStatuses(std::string jsonstring) {
         finalTwtString = ReplaceAll(finalTwtString, "Read more", "");
 
         post->status = finalTwtString.c_str();
-        // std::cout << std::endl
-        //           << "finalTwtString:" << finalTwtString << std::endl;
-        GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
 
+        if (twtsArray[index]["links"] != NULL) {
+          const Value &linksArray = twtsArray[index]["links"];
+          
+          if (linksArray != NULL) {
+            for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
+                 linkIndex++) 
+            {
+              std::string linkString =
+              document["twts"][index]["links"][linkIndex].GetString();
+              post->status = injectClickableLink(post->status, linkString);
+            }
+          }
+        }
+
+        GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
+        gtk_label_set_use_markup (GTK_LABEL (statusLabel), TRUE);
         gtk_label_set_wrap(GTK_LABEL(statusLabel), true);
         gtk_label_set_xalign(GTK_LABEL(statusLabel), 0);
         gtk_label_set_max_width_chars(GTK_LABEL(statusLabel), 150);
@@ -410,21 +428,17 @@ void parseJsonStatuses(std::string jsonstring) {
         gtk_image_set_pixel_size(GTK_IMAGE(avatar), 50);
         gtk_grid_attach(GTK_GRID(timelineGrid), avatar, 0,
                         index + guiLineOffset, 1, 1);
-
+        
         if (twtsArray[index]["links"] != NULL) {
           const Value &linksArray = twtsArray[index]["links"];
           if (linksArray != NULL) {
-            // appends others - not yourself.
             for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
                  linkIndex++) {
               std::string linkString =
                   document["twts"][index]["links"][linkIndex].GetString();
               linkString = getCleanLinkUrl(linkString);
-              post->links.push_back(linkString);
-
-              // if the link ends with for example .png - we download it and
-              // show it.
-              if (hasEnding(linkString, ".png") ||
+             
+             if (hasEnding(linkString, ".png") ||
                   hasEnding(linkString, ".jpg")) {
                 std::string base_filename =
                     linkString.substr(linkString.find_last_of("/\\") + 1);
@@ -433,7 +447,7 @@ void parseJsonStatuses(std::string jsonstring) {
                             << "filename: " << base_filename << std::endl;
                   downloadFile(linkString, base_filename);
                 }
-
+                    
                 GtkWidget *attachedImage =
                     gtk_image_new_from_file(base_filename.c_str());
                 gtk_image_set_pixel_size(GTK_IMAGE(attachedImage), 500);
@@ -442,9 +456,6 @@ void parseJsonStatuses(std::string jsonstring) {
                                 index + guiLineOffset + 1, 1, 1);
                 guiLineOffset += 1;
               }
-
-              std::cout << std::endl
-                        << "added link to post: " << linkString << std::endl;
             }
           }
         }

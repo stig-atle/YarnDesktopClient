@@ -10,6 +10,5 @@ public:
   string hash = "";
   string nickUrl = "";
   vector<string> mentions;
-  vector<string> links;
   string authorUri = "";
 };
