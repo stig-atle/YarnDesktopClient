@@ -32,15 +32,16 @@ const char *timelineNames[] = {"discover", "timeline", "mentions", NULL};
 const char *userSettingsFile = "UserSettings.txt";
 fstream settingsFile;
 
-class UserInfo {
+class UserInfo
+{
 public:
   string username = "";
   string serverUrl = "";
   string password = "";
 };
 
-const SecretSchema * get_schema (void) G_GNUC_CONST;
-#define PASSWORD_SCHEMA  get_schema ()
+const SecretSchema *get_schema(void) G_GNUC_CONST;
+#define PASSWORD_SCHEMA get_schema()
 
 int main(int argc, char **argv);
 void replaceString(std::string &str, const std::string &from,
@@ -68,7 +69,7 @@ static void activate(GtkApplication *app,
                      __attribute__((unused)) gpointer user_data);
 std::string getSSLUrl(std::string url, bool verifySSL);
 std::string getCleanLinkUrl(std::string link);
-bool hasEnding (std::string const &fullString, std::string const &ending);
+bool hasEnding(std::string const &fullString, std::string const &ending);
 void readAndApplyUserSettings();
 void storeUserSettings();
 void storePassword();

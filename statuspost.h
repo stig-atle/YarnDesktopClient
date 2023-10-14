@@ -1,6 +1,7 @@
 #pragma once
 
-class statusPost {
+class statusPost
+{
 public:
   string status = "";
   string subject = "";

@@ -33,11 +33,11 @@
 #include "rapidjson/writer.h"
 
 #ifdef _WIN32
-#include<windows.h>
-  #include <io.h>
-  #define access _access_s
+#include <windows.h>
+#include <io.h>
+#define access _access_s
 #else
-  #include <unistd.h>
+#include <unistd.h>
 #endif
 
 #include <curl/curl.h>
@@ -49,18 +49,21 @@ using namespace rapidjson;
 UserInfo *userinfo = NULL;
 
 void replaceString(std::string &str, const std::string &from,
-                   const std::string &to) {
+                   const std::string &to)
+{
   size_t start_pos = str.find(from);
   str.replace(start_pos, from.length(), to);
 }
 
-size_t writefunc(void *ptr, size_t size, size_t nmemb, std::string *s) {
+size_t writefunc(void *ptr, size_t size, size_t nmemb, std::string *s)
+{
   s->append(static_cast<char *>(ptr), size * nmemb);
   return size * nmemb;
 }
 
 /*  returns 1 iff str ends with suffix  */
-int str_ends_with(const char *str, const char *suffix) {
+int str_ends_with(const char *str, const char *suffix)
+{
   if (str == NULL || suffix == NULL)
     return 0;
 
@@ -73,7 +76,8 @@ int str_ends_with(const char *str, const char *suffix) {
   return 0 == strncmp(str + str_len - suffix_len, suffix, suffix_len);
 }
 
-void postStatus(std::string token, std::string status, std::string serverurl) {
+void postStatus(std::string token, std::string status, std::string serverurl)
+{
   std::string prefix = "{\"text\": \"";
   std::string suffix = "\"}";
 
@@ -83,7 +87,8 @@ void postStatus(std::string token, std::string status, std::string serverurl) {
   CURLcode res;
   curl = curl_easy_init();
 
-  if (curl) {
+  if (curl)
+  {
     std::string s;
 
     struct curl_slist *hs = NULL;
@@ -106,9 +111,12 @@ void postStatus(std::string token, std::string status, std::string serverurl) {
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
 
-    if (res == CURLE_OK) {
+    if (res == CURLE_OK)
+    {
       std::cout << res << std::endl;
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
     }
@@ -118,13 +126,15 @@ void postStatus(std::string token, std::string status, std::string serverurl) {
 }
 
 // Fetch the username for your profile.
-std::string whoAmI(std::string serverurl, std::string tokenTemp) {
+std::string whoAmI(std::string serverurl, std::string tokenTemp)
+{
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
   std::string username = "";
 
-  if (curl) {
+  if (curl)
+  {
     std::string jsonReplyString;
     struct curl_slist *hs = NULL;
     hs = curl_slist_append(hs, "Content-Type: application/json");
@@ -142,15 +152,19 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
 
     res = curl_easy_perform(curl);
 
-    if (res == CURLE_OK) {
+    if (res == CURLE_OK)
+    {
       rapidjson::Document jsonReply;
       jsonReply.Parse(jsonReplyString.c_str());
       // std::cout << " json reply whoami: " << jsonReplyString << std::endl;
-      if (jsonReply["username"] != NULL) {
+      if (jsonReply["username"] != NULL)
+      {
         username = jsonReply["username"].GetString();
         std::cout << username << std::endl;
       }
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
     }
@@ -162,13 +176,15 @@ std::string whoAmI(std::string serverurl, std::string tokenTemp) {
 }
 
 std::string getToken(std::string username, std::string password,
-                     std::string serverurl) {
+                     std::string serverurl)
+{
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
   std::string token_temp = "";
 
-  if (curl) {
+  if (curl)
+  {
     std::string jsonReplyString;
 
     struct curl_slist *hs = NULL;
@@ -190,19 +206,23 @@ std::string getToken(std::string username, std::string password,
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
 
-    if (res == CURLE_OK) {
+    if (res == CURLE_OK)
+    {
       rapidjson::Document jsonReply;
       // std::cout << " json reply: " << jsonReplyString << std::endl;
 
-      if (jsonReplyString == "Invalid Credentials\n") {
+      if (jsonReplyString == "Invalid Credentials\n")
+      {
         std::cout << "Invalid credentials!" << std::endl;
       }
-      if (jsonReplyString != "Invalid Credentials\n") {
+      if (jsonReplyString != "Invalid Credentials\n")
+      {
 
         jsonReply.Parse(jsonReplyString.c_str());
 
         // Fetch token
-        if (jsonReply["token"] != NULL) {
+        if (jsonReply["token"] != NULL)
+        {
           std::cout << jsonReply["token"].GetString() << std::endl;
           token_temp = jsonReply["token"].GetString();
 
@@ -210,7 +230,9 @@ std::string getToken(std::string username, std::string password,
           userinfo->username = whoAmI(serverurl, token_temp).c_str();
         }
       }
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
     }
@@ -221,27 +243,32 @@ std::string getToken(std::string username, std::string password,
 }
 
 std::string ReplaceAll(std::string str, const std::string &from,
-                       const std::string &to) {
+                       const std::string &to)
+{
   size_t start_pos = 0;
 
-  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+  {
     str.replace(start_pos, from.length(), to);
     start_pos += to.length();
   }
   return str;
 }
 
-std::string injectClickableLink(std::string statusText, std::string linkText) {
-  linkText = ReplaceAll(statusText,linkText, "<a href=\"" + linkText + "\"" + ">" + linkText + "</a>");
+std::string injectClickableLink(std::string statusText, std::string linkText)
+{
+  linkText = ReplaceAll(statusText, linkText, "<a href=\"" + linkText + "\"" + ">" + linkText + "</a>");
   return linkText;
 }
 
-bool FileExists(const std::string &Filename) {
+bool FileExists(const std::string &Filename)
+{
   return access(Filename.c_str(), 0) == 0;
 }
 
 // Download file from url..
-void downloadFile(std::string fileUrl, std::string filename) {
+void downloadFile(std::string fileUrl, std::string filename)
+{
   CURL *curl;
   CURLcode fileResult;
   const char *url = fileUrl.c_str();
@@ -249,10 +276,10 @@ void downloadFile(std::string fileUrl, std::string filename) {
   FILE *file;
   file = fopen(filename.c_str(), "wb");
 
-  if (curl) {
+  if (curl)
+  {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
-
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
     curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -263,9 +290,13 @@ void downloadFile(std::string fileUrl, std::string filename) {
     // Grab image
     fileResult = curl_easy_perform(curl);
 
-    if (fileResult) {
-      cout << "Cannot grab the file!\n" << fileResult << std::endl;
-    } else {
+    if (fileResult)
+    {
+      cout << "Cannot grab the file!\n"
+           << fileResult << std::endl;
+    }
+    else
+    {
       cout << "Successfully grabbed file! stored at: " << filename
            << fileResult << std::endl;
     }
@@ -275,35 +306,45 @@ void downloadFile(std::string fileUrl, std::string filename) {
 }
 
 void button_reply_clicked(__attribute__((unused)) GtkLabel *lbl,
-                          std::string subject) {
+                          std::string subject)
+{
   gtk_editable_set_text(GTK_EDITABLE(input_status), subject.c_str());
 }
 
-std::string getCleanLinkUrl(std::string link) {
+std::string getCleanLinkUrl(std::string link)
+{
   link = ReplaceAll(link, "![](", "");
   link = ReplaceAll(link, ")", "");
   return link;
 }
 
-bool hasEnding(std::string const &fullString, std::string const &ending) {
-  if (fullString.length() >= ending.length()) {
+bool hasEnding(std::string const &fullString, std::string const &ending)
+{
+  if (fullString.length() >= ending.length())
+  {
     return (0 == fullString.compare(fullString.length() - ending.length(),
                                     ending.length(), ending));
-  } else {
+  }
+  else
+  {
     return false;
   }
 }
 
-void parseJsonStatuses(std::string jsonstring) {
+void parseJsonStatuses(std::string jsonstring)
+{
   Document document;
   document.Parse(jsonstring.c_str());
   const Value &twtsArray = document["twts"];
   std::string finalTwtString = "";
   int guiLineOffset = 0;
 
-  if (twtsArray.IsArray()) {
-    for (SizeType index = 0; index < twtsArray.Size(); index++) {
-      if (twtsArray[index]["markdownText"] != NULL) {
+  if (twtsArray.IsArray())
+  {
+    for (SizeType index = 0; index < twtsArray.Size(); index++)
+    {
+      if (twtsArray[index]["markdownText"] != NULL)
+      {
         statusPost *post = new statusPost();
         finalTwtString = "";
 
@@ -325,26 +366,33 @@ void parseJsonStatuses(std::string jsonstring) {
         // Do not include yourself in the reply if you hit reply on your own
         // post.
         if ((post->authorUri.find(userinfo->username) != string::npos) ==
-            false) {
+            false)
+        {
           finalReplyString.append(post->authorUri.c_str());
         }
 
-        if (twtsArray[index]["mentions"] != NULL) {
+        if (twtsArray[index]["mentions"] != NULL)
+        {
           const Value &mentionsArray = twtsArray[index]["mentions"];
-          if (mentionsArray != NULL) {
+          if (mentionsArray != NULL)
+          {
             // appends others - not yourself.
             for (SizeType mentionIndex = 0; mentionIndex < mentionsArray.Size();
-                 mentionIndex++) {
+                 mentionIndex++)
+            {
               // Check if the 'mentions' contains userinfo.username - skip if it
               // has the 'owners' name in it.
               std::string tmpString =
                   document["twts"][index]["mentions"][mentionIndex].GetString();
 
               if ((tmpString.find(userinfo->username) != string::npos) ==
-                  false) {
+                  false)
+              {
                 finalReplyString.append(tmpString);
                 finalReplyString.append(" ");
-              } else {
+              }
+              else
+              {
                 // We do nothing if the mention is yourself.
               }
 
@@ -360,8 +408,10 @@ void parseJsonStatuses(std::string jsonstring) {
         // as extension - regardless of format right now.
         std::string filename = "./" + post->nick + ".png";
 
-        if (post->avatarUrl != "") {
-          if (!FileExists(filename)) {
+        if (post->avatarUrl != "")
+        {
+          if (!FileExists(filename))
+          {
             downloadFile(post->avatarUrl, filename);
           }
         }
@@ -372,20 +422,24 @@ void parseJsonStatuses(std::string jsonstring) {
         finalTwtString = "\n" + post->created + "\n" + post->nick + ": \n\n" +
                          twtsArray[index]["markdownText"].GetString();
 
-        while (finalTwtString.find("<") != std::string::npos) {
+        while (finalTwtString.find("<") != std::string::npos)
+        {
           auto startpos = finalTwtString.find("<");
           auto endpos = finalTwtString.find(">") + 1;
 
-          if (endpos != std::string::npos) {
+          if (endpos != std::string::npos)
+          {
             finalTwtString.erase(startpos, endpos - startpos);
           }
         }
 
-        while (finalTwtString.find("(http") != std::string::npos) {
+        while (finalTwtString.find("(http") != std::string::npos)
+        {
           auto startpos = finalTwtString.find("(");
           auto endpos = finalTwtString.find(")") + 1;
 
-          if (endpos != std::string::npos) {
+          if (endpos != std::string::npos)
+          {
             finalTwtString.erase(startpos, endpos - startpos);
           }
         }
@@ -402,22 +456,24 @@ void parseJsonStatuses(std::string jsonstring) {
 
         post->status = finalTwtString.c_str();
 
-        if (twtsArray[index]["links"] != NULL) {
+        if (twtsArray[index]["links"] != NULL)
+        {
           const Value &linksArray = twtsArray[index]["links"];
-          
-          if (linksArray != NULL) {
+
+          if (linksArray != NULL)
+          {
             for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
-                 linkIndex++) 
+                 linkIndex++)
             {
               std::string linkString =
-              document["twts"][index]["links"][linkIndex].GetString();
+                  document["twts"][index]["links"][linkIndex].GetString();
               post->status = injectClickableLink(post->status, linkString);
             }
           }
         }
 
         GtkWidget *statusLabel = gtk_label_new(post->status.c_str());
-        gtk_label_set_use_markup (GTK_LABEL (statusLabel), TRUE);
+        gtk_label_set_use_markup(GTK_LABEL(statusLabel), TRUE);
         gtk_label_set_wrap(GTK_LABEL(statusLabel), true);
         gtk_label_set_xalign(GTK_LABEL(statusLabel), 0);
         gtk_label_set_max_width_chars(GTK_LABEL(statusLabel), 150);
@@ -428,26 +484,31 @@ void parseJsonStatuses(std::string jsonstring) {
         gtk_image_set_pixel_size(GTK_IMAGE(avatar), 50);
         gtk_grid_attach(GTK_GRID(timelineGrid), avatar, 0,
                         index + guiLineOffset, 1, 1);
-        
-        if (twtsArray[index]["links"] != NULL) {
+
+        if (twtsArray[index]["links"] != NULL)
+        {
           const Value &linksArray = twtsArray[index]["links"];
-          if (linksArray != NULL) {
+          if (linksArray != NULL)
+          {
             for (SizeType linkIndex = 0; linkIndex < linksArray.Size();
-                 linkIndex++) {
+                 linkIndex++)
+            {
               std::string linkString =
                   document["twts"][index]["links"][linkIndex].GetString();
               linkString = getCleanLinkUrl(linkString);
-             
-             if (hasEnding(linkString, ".png") ||
-                  hasEnding(linkString, ".jpg")) {
+
+              if (hasEnding(linkString, ".png") ||
+                  hasEnding(linkString, ".jpg"))
+              {
                 std::string base_filename =
                     linkString.substr(linkString.find_last_of("/\\") + 1);
-                if (!FileExists(base_filename)) {
+                if (!FileExists(base_filename))
+                {
                   std::cout << std::endl
                             << "filename: " << base_filename << std::endl;
                   downloadFile(linkString, base_filename);
                 }
-                    
+
                 GtkWidget *attachedImage =
                     gtk_image_new_from_file(base_filename.c_str());
                 gtk_image_set_pixel_size(GTK_IMAGE(attachedImage), 500);
@@ -484,17 +545,20 @@ void parseJsonStatuses(std::string jsonstring) {
   }
 }
 
-std::string getTimeline(std::string serverurl) {
+std::string getTimeline(std::string serverurl)
+{
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
   std::string jsonReplyString = "";
 
-  if (currentTimelineName == NULL) {
+  if (currentTimelineName == NULL)
+  {
     currentTimelineName = "discover";
   }
 
-  if (curl) {
+  if (curl)
+  {
     struct curl_slist *hs = NULL;
     hs = curl_slist_append(hs,
                            "Content-Type: application/x-www-form-urlencoded");
@@ -513,12 +577,15 @@ std::string getTimeline(std::string serverurl) {
 
     res = curl_easy_perform(curl);
 
-    if (res == CURLE_OK) {
+    if (res == CURLE_OK)
+    {
       rapidjson::Document jsonReply;
       jsonReply.Parse(jsonReplyString.c_str());
       parseJsonStatuses(jsonReplyString);
       return "";
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "curl_easy_perform() failed: %s\n",
               curl_easy_strerror(res));
     }
@@ -529,9 +596,11 @@ std::string getTimeline(std::string serverurl) {
   return jsonReplyString;
 }
 
-void refreshTimeline() {
+void refreshTimeline()
+{
   GtkWidget *iter = gtk_widget_get_first_child(timelineGrid);
-  while (iter != NULL) {
+  while (iter != NULL)
+  {
     GtkWidget *next = gtk_widget_get_next_sibling(iter);
     gtk_grid_remove(GTK_GRID(timelineGrid), iter);
     iter = next;
@@ -539,7 +608,8 @@ void refreshTimeline() {
   getTimeline(userinfo->serverUrl);
 }
 
-void selectedTimeline() {
+void selectedTimeline()
+{
   auto selectedTimeLineIndex =
       gtk_drop_down_get_selected(GTK_DROP_DOWN(timelineDropDown));
   currentTimelineName = timelineNames[selectedTimeLineIndex];
@@ -548,17 +618,21 @@ void selectedTimeline() {
   refreshTimeline();
 }
 
-void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
+void button_login_clicked(__attribute__((unused)) GtkLabel *lbl)
+{
   userinfo = new UserInfo();
   userinfo->username = gtk_editable_get_text(GTK_EDITABLE(input_username));
   verifySSL = gtk_check_button_get_active(GTK_CHECK_BUTTON(checkbox_SSLVerify));
 
   std::string serverUrl = gtk_editable_get_text(GTK_EDITABLE(input_server));
 
-  if (str_ends_with(serverUrl.c_str(), "/") == true) {
+  if (str_ends_with(serverUrl.c_str(), "/") == true)
+  {
     std::cout << "Found '/' at end of url, will remove it." << std::endl;
     serverUrl = serverUrl.substr(0, serverUrl.size() - 1);
-  } else {
+  }
+  else
+  {
     std::cout << "No '/' found at end of url, will use as is." << std::endl;
   }
 
@@ -568,7 +642,8 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
   userinfo->password = gtk_editable_get_text(GTK_EDITABLE(input_password));
   token = getToken(userinfo->username, userinfo->password, userinfo->serverUrl);
 
-  if (token != "") {
+  if (token != "")
+  {
 
     storeUserSettings();
 
@@ -586,7 +661,8 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
         gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_widget_set_vexpand(statusEntrySeparator3, true);
 
-    std::cout << std::endl << "Token: " << token << std::endl;
+    std::cout << std::endl
+              << "Token: " << token << std::endl;
     getTimeline(userinfo->serverUrl);
 
     timelineDropDown = gtk_drop_down_new_from_strings(timelineNames);
@@ -613,19 +689,25 @@ void button_login_clicked(__attribute__((unused)) GtkLabel *lbl) {
   }
 }
 
-std::string getSSLUrl(std::string url, bool verifySSL) {
-  if (verifySSL) {
+std::string getSSLUrl(std::string url, bool verifySSL)
+{
+  if (verifySSL)
+  {
     // Se if we have entered a http only url if ssl was enabled.
-    if (url.find("http://") != string::npos) {
+    if (url.find("http://") != string::npos)
+    {
       replaceString(url, "http://", "https://");
       std::cout
           << "SSl is enabled, but http only url was used, forcing ssl for url."
           << std::endl;
       std::cout << url << std::endl;
     }
-  } else {
+  }
+  else
+  {
     // Do the reverse if we have http only and have entered a https url
-    if (url.find("https://") != string::npos) {
+    if (url.find("https://") != string::npos)
+    {
       replaceString(url, "https://", "http://");
       std::cout << "SSl is disabled, but https only url was used, forcing "
                    "non-ssl for url."
@@ -636,7 +718,8 @@ std::string getSSLUrl(std::string url, bool verifySSL) {
   return url;
 }
 
-void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl) {
+void button_refresh_timeline_clicked(__attribute__((unused)) GtkLabel *lbl)
+{
   refreshTimeline();
 }
 
@@ -668,22 +751,23 @@ void checkTask(std::string taskURL)
 
   if (document["state"] != NULL)
   {
-    std::string taskStateString =  document["state"].GetString();
-    std::string errorString =  document["error"].GetString();
+    std::string taskStateString = document["state"].GetString();
+    std::string errorString = document["error"].GetString();
 
-    if(errorString != "")
+    if (errorString != "")
     {
-      cout << "Error from task is: " << errorString << "\n"; 
+      cout << "Error from task is: " << errorString << "\n";
       curl_easy_cleanup(curl);
       curl = NULL;
-    }else
+    }
+    else
     {
       cout << "state from task is: " << taskStateString << "\n";
 
-      if(taskStateString == "complete")
+      if (taskStateString == "complete")
       {
         cout << document["data"]["mediaURI"].GetString() << "\n";
-        
+
         std::string imageurl = "";
 
         imageurl.append("![](");
@@ -707,7 +791,7 @@ void checkTask(std::string taskURL)
         checkTask(taskURL);
       }
     }
-  } 
+  }
   curl_easy_cleanup(curl);
   curl = NULL;
 }
@@ -720,7 +804,8 @@ void checkTask(std::string taskURL)
 std::string uploadMedia(std::string filepath, std::string token)
 {
   cout << "uploading file from path: " << filepath << "\n";
-  cout << "to url: " + userinfo->serverUrl + "/api/v1/upload" << "\n";
+  cout << "to url: " + userinfo->serverUrl + "/api/v1/upload"
+       << "\n";
 
   CURL *curl;
   curl_mime *mime1;
@@ -732,26 +817,26 @@ std::string uploadMedia(std::string filepath, std::string token)
   std::string tokenJson = ("Token: " + token);
   std::string jsonReplyString = "";
   std::string urlTemp = userinfo->serverUrl + "/api/v1/upload";
-  
+
   slist1 = curl_slist_append(slist1, tokenJson.c_str());
   curl = curl_easy_init();
-  
+
   curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, CURL_MAX_READ_SIZE);
   curl_easy_setopt(curl, CURLOPT_URL, urlTemp.c_str());
   curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, verifySSL);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verifySSL);
-  
+
   mime1 = curl_mime_init(curl);
   part1 = curl_mime_addpart(mime1);
-  
+
   curl_mime_filedata(part1, filepath.c_str());
   curl_mime_name(part1, "media_file");
-  
+
   curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime1);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist1);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                     "(KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36");
+                                            "(KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36");
   curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
   curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_2TLS);
   curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1L);
@@ -761,13 +846,16 @@ std::string uploadMedia(std::string filepath, std::string token)
 
   res = curl_easy_perform(curl);
 
-  if (res == CURLE_OK) {
+  if (res == CURLE_OK)
+  {
     rapidjson::Document jsonReply;
-    
-    if (jsonReply.Parse(jsonReplyString.c_str()).HasParseError()){
+
+    if (jsonReply.Parse(jsonReplyString.c_str()).HasParseError())
+    {
       std::cout << jsonReplyString.c_str();
     }
-    else{
+    else
+    {
       cout << "path is: " << jsonReply["Path"].GetString() << "\n";
       checkTask(jsonReply["Path"].GetString());
     }
@@ -783,65 +871,74 @@ std::string uploadMedia(std::string filepath, std::string token)
   return jsonReplyString;
 }
 
-static void on_open_response (GtkDialog *dialog, int response)
+static void on_open_response(GtkDialog *dialog, int response)
 {
   if (response == GTK_RESPONSE_ACCEPT)
   {
-    GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
 
-    g_autoptr(GFile) file = gtk_file_chooser_get_file (chooser);
+    g_autoptr(GFile) file = gtk_file_chooser_get_file(chooser);
     string fileName = g_file_get_path(file);
     cout << "file name: " << fileName << endl;
-    uploadMedia(fileName,token);
+    uploadMedia(fileName, token);
   }
 
-  gtk_window_destroy (GTK_WINDOW (dialog));
+  gtk_window_destroy(GTK_WINDOW(dialog));
 }
 
-void button_upload_media_clicked(__attribute__((unused)) GtkLabel *lbl) {
-GtkWidget *dialog;
-GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+void button_upload_media_clicked(__attribute__((unused)) GtkLabel *lbl)
+{
+  GtkWidget *dialog;
+  GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
 
-dialog = gtk_file_chooser_dialog_new ("Open File",
-                                      GTK_WINDOW(window),
-                                      action,
-                                      ("_Cancel"),
-                                      GTK_RESPONSE_CANCEL,
-                                      ("_Open"),
-                                      GTK_RESPONSE_ACCEPT,
-                                      NULL);
+  dialog = gtk_file_chooser_dialog_new("Open File",
+                                       GTK_WINDOW(window),
+                                       action,
+                                       ("_Cancel"),
+                                       GTK_RESPONSE_CANCEL,
+                                       ("_Open"),
+                                       GTK_RESPONSE_ACCEPT,
+                                       NULL);
 
-    gtk_widget_show (dialog);
+  gtk_widget_show(dialog);
 
-    g_signal_connect (dialog, "response", G_CALLBACK (on_open_response), NULL);
+  g_signal_connect(dialog, "response", G_CALLBACK(on_open_response), NULL);
 }
 
-void button_post_status_clicked(__attribute__((unused)) GtkLabel *lbl) {
+void button_post_status_clicked(__attribute__((unused)) GtkLabel *lbl)
+{
   std::string status = gtk_editable_get_text(GTK_EDITABLE(input_status));
   postStatus(token, status, userinfo->serverUrl);
   gtk_editable_set_text(GTK_EDITABLE(input_status), "");
   refreshTimeline();
 }
 
-void storeUserSettings() {
+void storeUserSettings()
+{
   std::ofstream out(userSettingsFile);
   out << userinfo->serverUrl << std::endl;
   out << userinfo->username << std::endl;
   out.close();
 }
 
-void readAndApplyUserSettings() {
-  if (std::experimental::filesystem::exists(userSettingsFile)) {
+void readAndApplyUserSettings()
+{
+  if (std::experimental::filesystem::exists(userSettingsFile))
+  {
     settingsFile.open(userSettingsFile, ios::in);
-    if (settingsFile.is_open()) {
+    if (settingsFile.is_open())
+    {
       std::string settingsLine = "";
       for (int settingsIndex = 0; getline(settingsFile, settingsLine);
-           settingsIndex++) {
-        if (settingsIndex == 0) {
+           settingsIndex++)
+      {
+        if (settingsIndex == 0)
+        {
           gtk_editable_set_text(GTK_EDITABLE(input_server),
                                 settingsLine.c_str());
         }
-        if (settingsIndex == 1) {
+        if (settingsIndex == 1)
+        {
           gtk_editable_set_text(GTK_EDITABLE(input_username),
                                 settingsLine.c_str());
         }
@@ -850,7 +947,8 @@ void readAndApplyUserSettings() {
   }
 }
 
-const SecretSchema *get_schema(void) {
+const SecretSchema *get_schema(void)
+{
   static const SecretSchema the_schema = {
       "Yarn.Desktop.Password",
       SECRET_SCHEMA_NONE,
@@ -863,19 +961,24 @@ const SecretSchema *get_schema(void) {
 }
 
 static void on_password_stored(GObject *source, GAsyncResult *result,
-                               gpointer unused) {
+                               gpointer unused)
+{
   GError *error = NULL;
 
   secret_password_store_finish(result, &error);
-  if (error != NULL) {
+  if (error != NULL)
+  {
     /* ... handle the failure here */
     g_error_free(error);
-  } else {
+  }
+  else
+  {
     std::cout << "password has been stored..\n";
   }
 }
 
-void storePassword() {
+void storePassword()
+{
   std::cout << "Storing password!\n";
 
   secret_password_store(PASSWORD_SCHEMA, SECRET_COLLECTION_DEFAULT,
@@ -884,19 +987,25 @@ void storePassword() {
                         "https://github.com/stig-atle/YarnDesktopClient", NULL);
 }
 
-void getpassword() {
+void getpassword()
+{
   GError *error = NULL;
 
   gchar *password = secret_password_lookup_sync(
       PASSWORD_SCHEMA, NULL, &error, "website",
       "https://github.com/stig-atle/YarnDesktopClient", "version", 0, NULL);
 
-  if (error != NULL) {
+  if (error != NULL)
+  {
     cout << "error!\n";
     g_error_free(error);
-  } else if (password == NULL) {
+  }
+  else if (password == NULL)
+  {
     cout << "password was null\n";
-  } else {
+  }
+  else
+  {
     std::string retrievedPassword(password);
     gtk_editable_set_text(GTK_EDITABLE(input_password),
                           retrievedPassword.c_str());
@@ -905,7 +1014,8 @@ void getpassword() {
 }
 
 static void activate(GtkApplication *app,
-                     __attribute__((unused)) gpointer user_data) {
+                     __attribute__((unused)) gpointer user_data)
+{
   GtkWidget *gridParent;
   gridParent = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
@@ -1000,7 +1110,8 @@ static void activate(GtkApplication *app,
   readAndApplyUserSettings();
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   int status;
 
   app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);
