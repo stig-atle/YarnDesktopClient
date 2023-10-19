@@ -11,3 +11,4 @@ include_directories(${GTK_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS} ${LIBSECRET_INCLUDE
 set(SOURCES YarnDesktopClient.cpp YarnDesktopClient.h statuspost.h)
 add_executable(${PROJECT_NAME} ${SOURCES}) 
 target_link_libraries(${PROJECT_NAME} ${GTK_LIBRARIES} ${CURL_LIBRARIES} ${LIBSECRET_LIBRARIES} stdc++fs)
+install(TARGETS YarnDesktopClient DESTINATION bin)
