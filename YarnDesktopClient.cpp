@@ -368,7 +368,6 @@ void parseJsonStatuses(std::string jsonstring)
         if ((post->authorUri.find(userinfo->username) != string::npos) ==
             false)
         {
-          //injectClickableLink(finalReplyString, post->authorUri);
           finalReplyString.append(post->authorUri.c_str());
         }
 
@@ -420,16 +419,9 @@ void parseJsonStatuses(std::string jsonstring)
         post->created = ReplaceAll(post->created, "T", ":");
         post->created = ReplaceAll(post->created, "Z", ".");
 
-        std::string nickUrl = post->authorUri;
-        replaceString(nickUrl, "@<", "");
-        replaceString(nickUrl, ">", "");
-        replaceString(nickUrl, post->nick, "");
-        replaceString(nickUrl, " ", "");
-
-         //"<a href=\"" + post->authorUri + "\"" + ">" + post->nick + "</a>"
-
-         //We need to split this, to have clickable link, clean the markdown first, then put it into final along with the nick url and that stuff..
-        std::string postInfo = "\n" + post->created + "\n" + "<a href=\"" + nickUrl + "\"" + ">" + post->nick + "</a>" + " : \n\n";
+        std::string postInfo = "\n" + post->created + "\n" + 
+        "<a href=\"" + post->nickUrl + "\"" + ">" + 
+        post->nick + "</a>" + " : \n\n";
 
         finalTwtString = twtsArray[index]["markdownText"].GetString();
 
