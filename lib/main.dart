@@ -29,7 +29,8 @@ class AuthWidget extends StatefulWidget {
   _AuthWidgetState createState() => _AuthWidgetState();
 }
 
-class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateMixin {
+class _AuthWidgetState extends State<AuthWidget>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _serverUrlController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -79,7 +80,8 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
     }
   }
 
-  Future<String> getToken(String username, String password, String serverUrl) async {
+  Future<String> getToken(
+      String username, String password, String serverUrl) async {
     final String apiUrl = "$serverUrl/api/v1/auth";
     final response = await http.post(
       Uri.parse(apiUrl),
@@ -123,7 +125,8 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
     }
   }
 
-  Future<List<dynamic>> getTimeline(String serverUrl, String tokenTemp, String endpoint, DateTime? since) async {
+  Future<List<dynamic>> getTimeline(
+      String serverUrl, String tokenTemp, String endpoint) async {
     final String apiUrl = "$serverUrl/api/v1/$endpoint";
     final response = await http.post(
       Uri.parse(apiUrl),
@@ -131,7 +134,7 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
         "Content-Type": "application/x-www-form-urlencoded",
         "token": tokenTemp,
       },
-      body: jsonEncode({"since": since?.toIso8601String()}),
+      body: '{}', // Sending an empty JSON object as the body
     );
 
     if (response.statusCode == 200) {
@@ -229,9 +232,9 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
   }
 
   Future<void> _fetchAllTimelines(String serverUrl, String tokenTemp) async {
-    _discoverTimeline = await getTimeline(serverUrl, tokenTemp, 'discover', null);
-    _userTimeline = await getTimeline(serverUrl, tokenTemp, 'timeline', null);
-    _mentionsTimeline = await getTimeline(serverUrl, tokenTemp, 'mentions', null);
+    _discoverTimeline = await getTimeline(serverUrl, tokenTemp, 'discover');
+    _userTimeline = await getTimeline(serverUrl, tokenTemp, 'timeline');
+    _mentionsTimeline = await getTimeline(serverUrl, tokenTemp, 'mentions');
   }
 
   Future<void> _fetchTimeline(String endpoint) async {
@@ -242,38 +245,18 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
 
     try {
       String serverUrl = _serverUrlController.text.trim();
-      List<dynamic> newTimeline;
-      DateTime? latestTimestamp;
-
       switch (endpoint) {
         case 'discover':
-          latestTimestamp = _discoverTimeline.isNotEmpty
-              ? DateTime.parse(_discoverTimeline.first['created'] ?? '')
-              : null;
-          newTimeline = await getTimeline(serverUrl, _token, endpoint, latestTimestamp);
-          setState(() {
-            _discoverTimeline.addAll(newTimeline);
-          });
+          _discoverTimeline = await getTimeline(serverUrl, _token, 'discover');
           break;
         case 'timeline':
-          latestTimestamp = _userTimeline.isNotEmpty
-              ? DateTime.parse(_userTimeline.first['created'] ?? '')
-              : null;
-          newTimeline = await getTimeline(serverUrl, _token, endpoint, latestTimestamp);
-          setState(() {
-            _userTimeline.addAll(newTimeline);
-          });
+          _userTimeline = await getTimeline(serverUrl, _token, 'timeline');
           break;
         case 'mentions':
-          latestTimestamp = _mentionsTimeline.isNotEmpty
-              ? DateTime.parse(_mentionsTimeline.first['created'] ?? '')
-              : null;
-          newTimeline = await getTimeline(serverUrl, _token, endpoint, latestTimestamp);
-          setState(() {
-            _mentionsTimeline.addAll(newTimeline);
-          });
+          _mentionsTimeline = await getTimeline(serverUrl, _token, 'mentions');
           break;
       }
+
       setState(() {
         _statusMessage = "$endpoint refreshed successfully.";
       });
@@ -302,7 +285,7 @@ class _AuthWidgetState extends State<AuthWidget> with SingleTickerProviderStateM
       setState(() {
         _statusMessage = 'Status posted successfully.';
         _statusController.clear();
-        _fetchTimeline('timeline');
+        _fetchData();
       });
     } catch (e) {
       setState(() {
