@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 void main() {
   runApp(const MainApp());
@@ -191,6 +192,59 @@ class _AuthWidgetState extends State<AuthWidget>
     }
   }
 
+  Future<void> uploadMedia(String filePath, String token) async {
+    final String uploadUrl =
+        "${_serverUrlController.text.trim()}/api/v1/upload";
+    final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
+    request.headers['token'] = token;
+    request.files
+        .add(await http.MultipartFile.fromPath('media_file', filePath));
+
+    final response = await request.send();
+    if (response.statusCode == 200) {
+      final responseBody = await response.stream.bytesToString();
+      final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
+      final String taskUrl = jsonResponse['Path'];
+      await checkTask(taskUrl, token);
+    } else {
+      throw Exception('Failed to upload media: ${response.reasonPhrase}');
+    }
+  }
+
+  Future<void> checkTask(String taskUrl, String token) async {
+    while (true) {
+      final response = await http.get(
+        Uri.parse(taskUrl),
+        headers: {
+          "Content-Type": "application/json",
+          "token": token,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse =
+            jsonDecode(response.body) as Map<String, dynamic>;
+
+        final String taskState = jsonResponse['state'];
+        final String error = jsonResponse['error'];
+
+        if (error.isNotEmpty) {
+          throw Exception('Error from task: $error');
+        } else if (taskState == 'complete') {
+          final String mediaUri = jsonResponse['data']['mediaURI'];
+          setState(() {
+            _statusController.text += " ![]($mediaUri)";
+          });
+          return;
+        } else {
+          await Future.delayed(const Duration(seconds: 2));
+        }
+      } else {
+        throw Exception('Failed to check task: ${response.reasonPhrase}');
+      }
+    }
+  }
+
   List<Widget> parseStatusText(String text) {
     final List<Widget> widgets = [];
     final regex = RegExp(r'!\[\]\((.*?)\)|(@\w+)');
@@ -325,12 +379,27 @@ class _AuthWidgetState extends State<AuthWidget>
     FocusScope.of(context).requestFocus(FocusNode());
   }
 
+  Future<void> _pickAndUploadMedia() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.single.path != null) {
+      try {
+        await uploadMedia(result.files.single.path!, _token);
+        setState(() {
+          _statusMessage = 'Media uploaded successfully.';
+        });
+      } catch (e) {
+        setState(() {
+          _statusMessage = 'Error: ${e.toString()}';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (!_isLoggedIn) ...[
             TextField(
@@ -355,16 +424,6 @@ class _AuthWidgetState extends State<AuthWidget>
                   ),
           ] else ...[
             Text('Welcome, $_username!'),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _statusController,
-              decoration: const InputDecoration(labelText: 'New status'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _postNewStatus,
-              child: const Text('Post Status'),
-            ),
             const SizedBox(height: 20),
             _isLoading
                 ? const CircularProgressIndicator()
@@ -392,9 +451,30 @@ class _AuthWidgetState extends State<AuthWidget>
                       ],
                     ),
                   ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _statusController,
+              decoration: const InputDecoration(labelText: 'New status'),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _postNewStatus,
+                    child: const Text('Post Status'),
+                  ),
+                ),
+                // const SizedBox(width: 10),
+                //ElevatedButton(
+                // onPressed: _pickAndUploadMedia,
+                //child: const Icon(Icons.upload),
+                //),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(_statusMessage),
           ],
-          const SizedBox(height: 20),
-          Text(_statusMessage),
         ],
       ),
     );
