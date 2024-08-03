@@ -379,10 +379,12 @@ class _AuthWidgetState extends State<AuthWidget>
       itemCount: timeline.length,
       separatorBuilder: (context, index) => const Divider(),
       itemBuilder: (context, index) {
-        var tweet = timeline[index];
-        String avatarUrl = tweet['twter']['avatar'] ?? '';
-        String statusText = tweet['text'] ?? 'No text available';
-        String hash = tweet['subject'] ?? '';
+        var post = timeline[index];
+        String avatarUrl = post['twter']['avatar'] ?? '';
+        String statusText = post['text'] ?? 'No text available';
+        String hash = post['subject'] ?? '';
+
+        statusText = statusText.replaceAll(hash, '');
 
         return ListTile(
           leading: avatarUrl.isNotEmpty
@@ -400,7 +402,7 @@ class _AuthWidgetState extends State<AuthWidget>
           ),
           subtitle: Row(
             children: [
-              Text('Author: ${tweet['twter']['nick'] ?? 'Unknown'}'),
+              Text('Author: ${post['twter']['nick'] ?? 'Unknown'}'),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.reply),
