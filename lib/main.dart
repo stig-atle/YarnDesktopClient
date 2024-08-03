@@ -6,16 +6,40 @@ void main() {
   runApp(const MainApp());
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  _MainAppState createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  bool _isDarkMode = true;
+
+  void _toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       home: Scaffold(
-        appBar: AppBar(title: const Text('Yarn Desktop Client')),
-        body: const Center(
-          child: AuthWidget(),
+        appBar: AppBar(
+          title: const Text('Yarn Desktop Client'),
+          actions: [
+            IconButton(
+              icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
+              onPressed: _toggleTheme,
+            ),
+          ],
+        ),
+        body: Center(
+          child: AuthWidget(
+            toggleTheme: _toggleTheme,
+          ),
         ),
       ),
     );
@@ -23,7 +47,9 @@ class MainApp extends StatelessWidget {
 }
 
 class AuthWidget extends StatefulWidget {
-  const AuthWidget({super.key});
+  final Function toggleTheme;
+
+  const AuthWidget({super.key, required this.toggleTheme});
 
   @override
   _AuthWidgetState createState() => _AuthWidgetState();
