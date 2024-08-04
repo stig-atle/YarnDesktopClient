@@ -201,13 +201,36 @@ class _AuthWidgetState extends State<AuthWidget>
         .add(await http.MultipartFile.fromPath('media_file', filePath));
 
     final response = await request.send();
+
     if (response.statusCode == 200) {
       final responseBody = await response.stream.bytesToString();
+
+      // Debugging: Print the response body
+      //print("Response body: $responseBody");
+
+      //try {
       final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
-      final String taskUrl = jsonResponse['Path'];
-      await checkTask(taskUrl, token);
+      final String mediaPath = jsonResponse['Path'];
+      //print("mediapath: $mediaPath");
+      setState(() {
+        _statusController.text += " ![]($mediaPath)";
+      });
+      //await checkTask(taskUrl, token);
+      /* if (jsonResponse.containsKey('Path')) {
+          final String taskUrl = jsonResponse['Path'];
+          await checkTask(taskUrl, token);
+        } else {
+          throw Exception('Invalid response format: "Path" key not found');
+        }
+      } catch (e) {
+        // If the response is not in JSON format, print the error and the response body
+        print("Error decoding JSON: $e");
+        print("Response body: $responseBody");
+        throw Exception('Failed to decode server response: $e');
+      }
     } else {
       throw Exception('Failed to upload media: ${response.reasonPhrase}');
+    }*/
     }
   }
 
@@ -465,11 +488,11 @@ class _AuthWidgetState extends State<AuthWidget>
                     child: const Text('Post Status'),
                   ),
                 ),
-                // const SizedBox(width: 10),
-                //ElevatedButton(
-                // onPressed: _pickAndUploadMedia,
-                //child: const Icon(Icons.upload),
-                //),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _pickAndUploadMedia,
+                  child: const Icon(Icons.upload),
+                ),
               ],
             ),
             const SizedBox(height: 20),
