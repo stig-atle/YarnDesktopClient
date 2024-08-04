@@ -29,7 +29,7 @@ class _MainAppState extends State<MainApp> {
       theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Yarn Desktop Client'),
+          // title: const Text('Yarn Desktop Client'),
           actions: [
             IconButton(
               icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
@@ -213,11 +213,13 @@ class _AuthWidgetState extends State<AuthWidget>
     }
   }
 
-  List<Widget> parseStatusText(String text) {
+  List<Widget> parseStatusText(String text, String subjectToRemove) {
     final List<Widget> widgets = [];
     final regex = RegExp(r'!\[\]\((.*?)\)|(@\w+)');
     final matches = regex.allMatches(text);
     int lastMatchEnd = 0;
+
+    text = text.replaceAll(subjectToRemove, '');
 
     for (final match in matches) {
       final imageUrl = match.group(1);
@@ -361,7 +363,7 @@ class _AuthWidgetState extends State<AuthWidget>
 
   void _replyToPost(String postHash) {
     setState(() {
-      _statusController.text += " @$postHash ";
+      _statusController.text += " $postHash ";
     });
   }
 
@@ -415,12 +417,11 @@ class _AuthWidgetState extends State<AuthWidget>
           children: [
             Row(
               children: [
-                // CircleAvatar(child: Text(_username[0].toUpperCase())),
                 const SizedBox(width: 8),
-                //Text(
-                // _username,
-                //style: const TextStyle(fontSize: 18),
-                //),
+                Text(
+                  _username,
+                  style: const TextStyle(fontSize: 18),
+                ),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.logout),
@@ -513,7 +514,7 @@ class _AuthWidgetState extends State<AuthWidget>
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...parseStatusText(post['text'] ?? ''),
+                      ...parseStatusText(post['text'] ?? '', postSubject),
                       IconButton(
                         icon: const Icon(Icons.reply),
                         onPressed: () => _replyToPost(postSubject),
