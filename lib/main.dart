@@ -38,9 +38,7 @@ class _MainAppState extends State<MainApp> {
           ],
         ),
         body: Center(
-          child: AuthWidget(
-            toggleTheme: _toggleTheme,
-          ),
+          child: AuthWidget(toggleTheme: _toggleTheme),
         ),
       ),
     );
@@ -63,9 +61,9 @@ class _AuthWidgetState extends State<AuthWidget>
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _statusController = TextEditingController();
   String _username = "Unknown";
-  List<dynamic> _discoverTimeline = [];
-  List<dynamic> _userTimeline = [];
-  List<dynamic> _mentionsTimeline = [];
+  final ValueNotifier<List<dynamic>> _discoverTimeline = ValueNotifier([]);
+  final ValueNotifier<List<dynamic>> _userTimeline = ValueNotifier([]);
+  final ValueNotifier<List<dynamic>> _mentionsTimeline = ValueNotifier([]);
   bool _isLoading = false;
   bool _isLoggedIn = false;
   String _statusMessage = "";
@@ -90,19 +88,19 @@ class _AuthWidgetState extends State<AuthWidget>
     super.dispose();
   }
 
-  void _handleTabSelection() {
+  void _handleTabSelection() async {
     if (_tabController.indexIsChanging) {
       return;
     }
     switch (_tabController.index) {
       case 0:
-        _fetchTimeline('discover');
+        await _fetchTimeline('discover');
         break;
       case 1:
-        _fetchTimeline('timeline');
+        await _fetchTimeline('timeline');
         break;
       case 2:
-        _fetchTimeline('mentions');
+        await _fetchTimeline('mentions');
         break;
     }
   }
@@ -205,66 +203,13 @@ class _AuthWidgetState extends State<AuthWidget>
     if (response.statusCode == 200) {
       final responseBody = await response.stream.bytesToString();
 
-      // Debugging: Print the response body
-      //print("Response body: $responseBody");
-
-      //try {
       final Map<String, dynamic> jsonResponse = jsonDecode(responseBody);
       final String mediaPath = jsonResponse['Path'];
-      //print("mediapath: $mediaPath");
       setState(() {
         _statusController.text += " ![]($mediaPath)";
       });
-      //await checkTask(taskUrl, token);
-      /* if (jsonResponse.containsKey('Path')) {
-          final String taskUrl = jsonResponse['Path'];
-          await checkTask(taskUrl, token);
-        } else {
-          throw Exception('Invalid response format: "Path" key not found');
-        }
-      } catch (e) {
-        // If the response is not in JSON format, print the error and the response body
-        print("Error decoding JSON: $e");
-        print("Response body: $responseBody");
-        throw Exception('Failed to decode server response: $e');
-      }
     } else {
       throw Exception('Failed to upload media: ${response.reasonPhrase}');
-    }*/
-    }
-  }
-
-  Future<void> checkTask(String taskUrl, String token) async {
-    while (true) {
-      final response = await http.get(
-        Uri.parse(taskUrl),
-        headers: {
-          "Content-Type": "application/json",
-          "token": token,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse =
-            jsonDecode(response.body) as Map<String, dynamic>;
-
-        final String taskState = jsonResponse['state'];
-        final String error = jsonResponse['error'];
-
-        if (error.isNotEmpty) {
-          throw Exception('Error from task: $error');
-        } else if (taskState == 'complete') {
-          final String mediaUri = jsonResponse['data']['mediaURI'];
-          setState(() {
-            _statusController.text += " ![]($mediaUri)";
-          });
-          return;
-        } else {
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      } else {
-        throw Exception('Failed to check task: ${response.reasonPhrase}');
-      }
     }
   }
 
@@ -335,9 +280,11 @@ class _AuthWidgetState extends State<AuthWidget>
   }
 
   Future<void> _fetchAllTimelines(String serverUrl, String tokenTemp) async {
-    _discoverTimeline = await getTimeline(serverUrl, tokenTemp, 'discover');
-    _userTimeline = await getTimeline(serverUrl, tokenTemp, 'timeline');
-    _mentionsTimeline = await getTimeline(serverUrl, tokenTemp, 'mentions');
+    _discoverTimeline.value =
+        await getTimeline(serverUrl, tokenTemp, 'discover');
+    _userTimeline.value = await getTimeline(serverUrl, tokenTemp, 'timeline');
+    _mentionsTimeline.value =
+        await getTimeline(serverUrl, tokenTemp, 'mentions');
   }
 
   Future<void> _fetchTimeline(String endpoint) async {
@@ -350,16 +297,17 @@ class _AuthWidgetState extends State<AuthWidget>
       String serverUrl = _serverUrlController.text.trim();
       switch (endpoint) {
         case 'discover':
-          _discoverTimeline = await getTimeline(serverUrl, _token, 'discover');
+          _discoverTimeline.value =
+              await getTimeline(serverUrl, _token, endpoint);
           break;
         case 'timeline':
-          _userTimeline = await getTimeline(serverUrl, _token, 'timeline');
+          _userTimeline.value = await getTimeline(serverUrl, _token, endpoint);
           break;
         case 'mentions':
-          _mentionsTimeline = await getTimeline(serverUrl, _token, 'mentions');
+          _mentionsTimeline.value =
+              await getTimeline(serverUrl, _token, endpoint);
           break;
       }
-
       setState(() {
         _statusMessage = "$endpoint refreshed successfully.";
       });
@@ -374,42 +322,35 @@ class _AuthWidgetState extends State<AuthWidget>
     }
   }
 
-  void _postNewStatus() async {
-    final String status = _statusController.text.trim();
-    if (status.isEmpty) {
-      setState(() {
-        _statusMessage = 'Status cannot be empty.';
-      });
-      return;
-    }
+  void _postStatus() async {
+    String status = _statusController.text.trim();
+    if (status.isEmpty) return;
 
     try {
-      await postStatus(_token, status, _serverUrlController.text.trim());
       setState(() {
-        _statusMessage = 'Status posted successfully.';
-        _statusController.clear();
-        _fetchData();
+        _isLoading = true;
+        _statusMessage = "Posting status...";
       });
+
+      await postStatus(_token, status, _serverUrlController.text.trim());
+      _statusController.clear();
+      await _fetchTimeline('timeline');
     } catch (e) {
       setState(() {
         _statusMessage = 'Error: ${e.toString()}';
       });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  void _replyToStatus(String hash) {
-    _statusController.text = '$hash ';
-    FocusScope.of(context).requestFocus(FocusNode());
-  }
-
-  Future<void> _pickAndUploadMedia() async {
+  void _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null && result.files.single.path != null) {
       try {
         await uploadMedia(result.files.single.path!, _token);
-        setState(() {
-          _statusMessage = 'Media uploaded successfully.';
-        });
       } catch (e) {
         setState(() {
           _statusMessage = 'Error: ${e.toString()}';
@@ -418,145 +359,173 @@ class _AuthWidgetState extends State<AuthWidget>
     }
   }
 
+  void _replyToPost(String postHash) {
+    setState(() {
+      _statusController.text += " @$postHash ";
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          if (!_isLoggedIn) ...[
-            TextField(
-              controller: _serverUrlController,
-              decoration: const InputDecoration(labelText: 'Server URL'),
-            ),
-            TextField(
-              controller: _usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
+    if (!_isLoggedIn) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _isLoading
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 20),
+                  Text("Logging in... Please wait"),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextField(
+                    controller: _serverUrlController,
+                    decoration: const InputDecoration(labelText: 'Server URL'),
+                  ),
+                  TextField(
+                    controller: _usernameController,
+                    decoration: const InputDecoration(labelText: 'Username'),
+                  ),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
                     onPressed: _fetchData,
                     child: const Text('Login'),
                   ),
-          ] else ...[
-            Text('Welcome, $_username!'),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : Expanded(
-                    child: Column(
-                      children: [
-                        TabBar(
-                          controller: _tabController,
-                          tabs: const [
-                            Tab(text: 'Discover'),
-                            Tab(text: 'Timeline'),
-                            Tab(text: 'Mentions'),
-                          ],
-                        ),
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              _buildTimelineView(_discoverTimeline),
-                              _buildTimelineView(_userTimeline),
-                              _buildTimelineView(_mentionsTimeline),
-                            ],
-                          ),
-                        ),
-                      ],
+                  if (_statusMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Text(_statusMessage),
                     ),
-                  ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _statusController,
-              decoration: const InputDecoration(labelText: 'New status'),
-            ),
-            const SizedBox(height: 10),
+                ],
+              ),
+      );
+    } else {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _postNewStatus,
-                    child: const Text('Post Status'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _pickAndUploadMedia,
-                  child: const Icon(Icons.upload),
+                // CircleAvatar(child: Text(_username[0].toUpperCase())),
+                const SizedBox(width: 8),
+                //Text(
+                // _username,
+                //style: const TextStyle(fontSize: 18),
+                //),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () {
+                    setState(() {
+                      _isLoggedIn = false;
+                    });
+                  },
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            Text(_statusMessage),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimelineView(List<dynamic> timeline) {
-    return ListView.separated(
-      itemCount: timeline.length,
-      separatorBuilder: (context, index) => const Divider(),
-      itemBuilder: (context, index) {
-        var post = timeline[index];
-        String avatarUrl = post['twter']['avatar'] ?? '';
-        String statusText = post['text'] ?? 'No text available';
-        String hash = post['subject'] ?? '';
-
-        statusText = statusText.replaceAll(hash, '');
-
-        return ListTile(
-          leading: avatarUrl.isNotEmpty
-              ? CircleAvatar(
-                  backgroundImage: NetworkImage(avatarUrl),
-                )
-              : const CircleAvatar(
-                  child: Icon(Icons.person),
-                ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...parseStatusText(statusText),
-            ],
-          ),
-          subtitle: Row(
-            children: [
-              Text('Author: ${post['twter']['nick'] ?? 'Unknown'}'),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.reply),
-                onPressed: () => _replyToStatus(hash),
+            const SizedBox(height: 10),
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Discover'),
+                Tab(text: 'Timeline'),
+                Tab(text: 'Mentions'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTimeline(_discoverTimeline),
+                  _buildTimeline(_userTimeline),
+                  _buildTimeline(_mentionsTimeline),
+                ],
               ),
-            ],
-          ),
-        );
-      },
-    );
+            ),
+            TextField(
+              controller: _statusController,
+              decoration: const InputDecoration(
+                labelText: 'Post a status',
+              ),
+              minLines: 1,
+              maxLines: 5,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.attach_file),
+                  onPressed: _pickFile,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _postStatus,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
   }
-}
 
-class UserProfilePage extends StatelessWidget {
-  final String url;
+  Widget _buildTimeline(ValueNotifier<List<dynamic>> timeline) {
+    return ValueListenableBuilder<List<dynamic>>(
+      valueListenable: timeline,
+      builder: (context, value, child) {
+        if (value.isEmpty) {
+          return const Center(child: Text("No posts available."));
+        } else {
+          return RefreshIndicator(
+            onRefresh: () async {
+              await _fetchTimeline(timeline == _discoverTimeline
+                  ? 'discover'
+                  : timeline == _userTimeline
+                      ? 'timeline'
+                      : 'mentions');
+            },
+            child: ListView.builder(
+              itemCount: value.length,
+              itemBuilder: (context, index) {
+                final post = value[index];
+                final username = post['twter']['nick'] ?? 'Unknown';
+                final avatarUrl = post['twter']['avatar'] ?? '';
+                final postSubject = post['subject'] ?? '';
 
-  const UserProfilePage({super.key, required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('User Profile')),
-      body: Center(
-        child: Text('User Profile Page (URL: $url)'),
-      ),
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage:
+                        avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                    child: avatarUrl.isEmpty
+                        ? Text(username[0].toUpperCase())
+                        : null,
+                  ),
+                  title: Text(username),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...parseStatusText(post['text'] ?? ''),
+                      IconButton(
+                        icon: const Icon(Icons.reply),
+                        onPressed: () => _replyToPost(postSubject),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        }
+      },
     );
   }
 }
