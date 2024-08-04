@@ -10,3 +10,5 @@ Precompiled packages for various systems and snap \ appimage are planned for lat
 
 The GTK4 version I wrote first is in the GTK4 branch.
 The new flutter version is in the main branch.
+
+![alt text](https://github.com/stig-atle/YarnDesktopClient/blob/main/screenshots/YarnDesktopClient_flutter.jpg?raw=true)
