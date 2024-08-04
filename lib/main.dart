@@ -188,6 +188,9 @@ class _AuthWidgetState extends State<AuthWidget>
     if (response.statusCode != 200) {
       throw Exception('Failed to post status: ${response.reasonPhrase}');
     }
+    await _fetchTimeline('discover');
+    await _fetchTimeline('timeline');
+    await _fetchTimeline('mentions');
   }
 
   Future<void> uploadMedia(String filePath, String token) async {
@@ -494,7 +497,7 @@ class _AuthWidgetState extends State<AuthWidget>
                       ? 'timeline'
                       : 'mentions');
             },
-            child: ListView.builder(
+            child: ListView.separated(
               itemCount: value.length,
               itemBuilder: (context, index) {
                 final post = value[index];
@@ -523,6 +526,7 @@ class _AuthWidgetState extends State<AuthWidget>
                   ),
                 );
               },
+              separatorBuilder: (context, index) => const Divider(),
             ),
           );
         }
