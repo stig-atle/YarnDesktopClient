@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() {
   runApp(const MainApp());
@@ -16,6 +17,7 @@ class MainApp extends StatefulWidget {
 
 class _MainAppState extends State<MainApp> {
   bool _isDarkMode = true;
+  
 
   void _toggleTheme() {
     setState(() {
@@ -70,23 +72,42 @@ class _AuthWidgetState extends State<AuthWidget>
   String _token = "";
   late TabController _tabController;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(_handleTabSelection);
-  }
+@override
+void initState() {
+  super.initState();
+  
+  // Initialize the controllers with default values or from secure storage
+  _initializeControllers();
 
-  @override
-  void dispose() {
-    _serverUrlController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _statusController.dispose();
-    _tabController.removeListener(_handleTabSelection);
-    _tabController.dispose();
-    super.dispose();
-  }
+  _tabController = TabController(length: 3, vsync: this);
+  _tabController.addListener(_handleTabSelection);
+}
+
+Future<void> _initializeControllers() async {
+  final storage = FlutterSecureStorage();
+
+  // Retrieve stored values or set default values
+  String? storedUsername = await storage.read(key: 'username');
+  String? storedPassword = await storage.read(key: 'password');
+  String? storedServerUrl = await storage.read(key: 'server');
+
+  setState(() {
+    _usernameController.text = storedUsername ?? '';
+    _passwordController.text = storedPassword ?? '';
+    _serverUrlController.text = storedServerUrl ?? '';
+  });
+}
+
+@override
+void dispose() {
+  _serverUrlController.dispose();
+  _usernameController.dispose();
+  _passwordController.dispose();
+  _statusController.dispose();
+  _tabController.removeListener(_handleTabSelection);
+  _tabController.dispose();
+  super.dispose();
+}
 
   void _handleTabSelection() async {
     if (_tabController.indexIsChanging) {
@@ -107,6 +128,12 @@ class _AuthWidgetState extends State<AuthWidget>
 
   Future<String> getToken(
       String username, String password, String serverUrl) async {
+    
+    final storage = FlutterSecureStorage();
+    await storage.write(key: 'username', value: username);
+    await storage.write(key: 'password', value: password);
+    await storage.write(key: 'server', value: serverUrl);
+
     final String apiUrl = "$serverUrl/api/v1/auth";
     final response = await http.post(
       Uri.parse(apiUrl),
