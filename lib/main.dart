@@ -255,7 +255,7 @@ void dispose() {
       final imageUrl = match.group(1);
 
       if (lastMatchEnd < match.start) {
-        widgets.add(Text(text.substring(lastMatchEnd, match.start)));
+        widgets.add(SelectableText(text.substring(lastMatchEnd, match.start)));
       }
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -266,7 +266,7 @@ void dispose() {
     }
 
     if (lastMatchEnd < text.length) {
-      widgets.add(Text(text.substring(lastMatchEnd)));
+      widgets.add(SelectableText(text.substring(lastMatchEnd)));
     }
 
     return widgets;
