@@ -391,7 +391,7 @@ void dispose() {
     }
   }
 
-void _replyToPost(String postHash, String postText) {
+void _replyToPost(String postHash, String postText, String postFeedUrl) {
   
   _statusController.text = "";
   // Regular expression to find all @<username url> mentions in the postText
@@ -408,7 +408,7 @@ void _replyToPost(String postHash, String postText) {
 
   setState(() {
     // Add all the filtered mentions and the postHash to _statusController.text
-    _statusController.text += "$postHash ${mentions.join(' ')}";
+    _statusController.text += "$postHash $postFeedUrl ${mentions.join(' ')}";
   });
 }
 
@@ -547,6 +547,7 @@ void _replyToPost(String postHash, String postText) {
                 final username = post['twter']['nick'] ?? 'Unknown';
                 final avatarUrl = post['twter']['avatar'] ?? '';
                 final postSubject = post['subject'] ?? '';
+                final postFeedUrl = "@<" + username + " " + post['twter']['uri'] + ">";
 
                 return ListTile(
                   leading: CircleAvatar(
@@ -563,7 +564,7 @@ void _replyToPost(String postHash, String postText) {
                       ...parseStatusText(post['text'] ?? '', postSubject),
                       IconButton(
                         icon: const Icon(Icons.reply),
-                        onPressed: () => _replyToPost(postSubject, post['text']),
+                        onPressed: () => _replyToPost(postSubject, post['text'], postFeedUrl),
                       ),
                     ],
                   ),
