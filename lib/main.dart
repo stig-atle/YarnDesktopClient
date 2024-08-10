@@ -391,11 +391,27 @@ void dispose() {
     }
   }
 
-  void _replyToPost(String postHash) {
-    setState(() {
-      _statusController.text += " $postHash ";
-    });
-  }
+void _replyToPost(String postHash, String postText) {
+  
+  _statusController.text = "";
+  // Regular expression to find all @<username url> mentions in the postText
+  final RegExp mentionRegex = RegExp(r'@<\w+\s+[^>]+>');
+
+  // Find all matches in the postText
+  final Iterable<RegExpMatch> matches = mentionRegex.allMatches(postText);
+
+  // Extract the actual mentions from the matches and filter out those containing _username
+  final List<String?> mentions = matches
+      .map((match) => match.group(0))
+      .where((mention) => !mention!.contains(_username))
+      .toList();
+
+  setState(() {
+    // Add all the filtered mentions and the postHash to _statusController.text
+    _statusController.text += "$postHash ${mentions.join(' ')}";
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -547,7 +563,7 @@ void dispose() {
                       ...parseStatusText(post['text'] ?? '', postSubject),
                       IconButton(
                         icon: const Icon(Icons.reply),
-                        onPressed: () => _replyToPost(postSubject),
+                        onPressed: () => _replyToPost(postSubject, post['text']),
                       ),
                     ],
                   ),
