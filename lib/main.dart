@@ -243,14 +243,20 @@ void dispose() {
     }
   }
 
-  List<Widget> parseStatusText(String text, String subjectToRemove) {
+List<Widget> parseStatusText(String text, String subjectToRemove) {
+    final userUrlRegex = RegExp(r'@<(\w+)\s+([^>]+?)>');
+
+    text = text.replaceAllMapped(userUrlRegex, (match) {
+      return '@${match.group(1)}';
+    });
+
     final List<Widget> widgets = [];
-    final regex = RegExp(r'!\[[^\]]*\]\((.*?)\)|(@\w+)');
-    final matches = regex.allMatches(text);
+    final regex = RegExp(r'!\[[^\]]*\]\((.*?)\)');
+
     int lastMatchEnd = 0;
 
     text = text.replaceAll(subjectToRemove, '');
-
+    final matches = regex.allMatches(text);
     for (final match in matches) {
       final imageUrl = match.group(1);
 
