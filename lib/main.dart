@@ -84,7 +84,7 @@ void initState() {
 }
 
 Future<void> _initializeControllers() async {
-  final storage = FlutterSecureStorage();
+  const storage = FlutterSecureStorage();
 
   // Retrieve stored values or set default values
   String? storedUsername = await storage.read(key: 'username');
@@ -129,7 +129,7 @@ void dispose() {
   Future<String> getToken(
       String username, String password, String serverUrl) async {
     
-    final storage = FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     await storage.write(key: 'username', value: username);
     await storage.write(key: 'password', value: password);
     await storage.write(key: 'server', value: serverUrl);
@@ -245,7 +245,7 @@ void dispose() {
 
   List<Widget> parseStatusText(String text, String subjectToRemove) {
     final List<Widget> widgets = [];
-    final regex = RegExp(r'!\[\]\((.*?)\)|(@\w+)');
+    final regex = RegExp(r'!\[[^\]]*\]\((.*?)\)|(@\w+)');
     final matches = regex.allMatches(text);
     int lastMatchEnd = 0;
 
@@ -419,9 +419,9 @@ void _replyToPost(String postHash, String postText, String postFeedUrl) {
       return Padding(
         padding: const EdgeInsets.all(16.0),
         child: _isLoading
-            ? Column(
+            ? const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 20),
                   Text("Logging in... Please wait"),
@@ -547,7 +547,7 @@ void _replyToPost(String postHash, String postText, String postFeedUrl) {
                 final username = post['twter']['nick'] ?? 'Unknown';
                 final avatarUrl = post['twter']['avatar'] ?? '';
                 final postSubject = post['subject'] ?? '';
-                final postFeedUrl = "@<" + username + " " + post['twter']['uri'] + ">";
+                final postFeedUrl = "${"${"@<" + username} " + post['twter']['uri']}>";
 
                 return ListTile(
                   leading: CircleAvatar(
